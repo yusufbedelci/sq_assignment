@@ -62,12 +62,11 @@ sql_statements =  [
 
 
 
-def create_tables():
+def create_tables() -> None:
     try:
         with sqlite3.connect('data.db') as conn:
                 cursor = conn.cursor()
                 for statement in  sql_statements:
-                    print(statement)
                     cursor.execute(statement)
                 
                 conn.commit()
@@ -75,3 +74,43 @@ def create_tables():
             print(e)
           
 create_tables()
+
+
+def create_user():
+      pass
+
+# def create_consultant():
+#       pass
+
+# def create_member():
+#       pass
+
+# def create_admin():
+#       pass
+
+def change_password():
+      pass
+
+def update_user():
+      pass
+
+def search_user():
+      pass
+
+def delete_user():
+      pass
+
+def reset_user_password():
+      pass
+
+
+def create_backup():
+      pass
+
+def restore_backup():
+      pass
+
+def show_logs():
+      pass
+
+
