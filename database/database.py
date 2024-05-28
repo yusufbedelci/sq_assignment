@@ -14,17 +14,15 @@ sql_statements =  [
 			CREATE TABLE IF NOT EXISTS user (
                 id INTEGER PRIMARY KEY AUTOINCREMENT, 
                 role_id INTEGER NOT NULL,
-                membership_id INTEGER NOT NULL,
                 name TEXT NOT NULL, 
                 lastname TEXT NOT NULL, 
                 age INTEGER NOT NULL, 
                 gender TEXT NOT NULL, 
                 weight INTEGER NOT NULL, 
                 email TEXT NOT NULL UNIQUE, 
-                mobile INTEGER NOT NULL UNIQUE, 
+                mobile TEXT NOT NULL UNIQUE, 
                 password TEXT NOT NULL,
                 FOREIGN KEY (role_id) REFERENCES role(id)
-                FOREIGN KEY (membership_id) REFERENCES membership(id)
                 );
 			"""
                 ,
@@ -32,7 +30,9 @@ sql_statements =  [
 			"""
             	CREATE TABLE IF NOT EXISTS membership (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                registration_date TEXT NOT NULL
+                user_id INTEGER,
+                registration_date TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES user(id)
                 
                 );
 			""",
@@ -52,37 +52,26 @@ sql_statements =  [
                 CREATE TABLE IF NOT EXISTS user_address (
                 user_id INTEGER,
                 address_id INTEGER,
+                PRIMARY KEY (user_id, address_id),
                 FOREIGN KEY (user_id) REFERENCES user(id)
                 FOREIGN KEY (address_id) REFERENCES address(id)
                 );
 			""",
-                     
-					 
-					 
-					 
-					 
-					 
-					 ]
-        
+]
 
 
 
-connection = sqlite3.connect("data.db")
-try:
-	with sqlite3.connect('data.db') as conn:
-            cursor = conn.cursor()
-            for statement in  sql_statements:
-                print(statement)
-                cursor.execute(statement)
-            
-            conn.commit()
-except sqlite3.Error as e:
-          print(e)
-          
-
-
-
-# connection.execute(CREATE_TABLES)
 
 def create_tables():
-          pass
+    try:
+        with sqlite3.connect('data.db') as conn:
+                cursor = conn.cursor()
+                for statement in  sql_statements:
+                    print(statement)
+                    cursor.execute(statement)
+                
+                conn.commit()
+    except sqlite3.Error as e:
+            print(e)
+          
+create_tables()
