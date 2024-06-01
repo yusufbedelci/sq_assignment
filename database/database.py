@@ -1,19 +1,17 @@
 import sqlite3
-from typing import Any, List, Tuple
 
 sql_statements =  [
-       "PRAGMA foreign_keys = ON;",
 			"""
                 CREATE TABLE IF NOT EXISTS role (
-                id INTEGER PRIMARY KEY,
-                name TEXT NOT NULL
+                role_id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL UNIQUE
                 );
 			""",
 
 			"""
 			CREATE TABLE IF NOT EXISTS user (
-                id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                role_id INTEGER NOT NULL,
+                user_id INTEGER PRIMARY KEY , 
+                assigned_role_id INTEGER,
                 name TEXT NOT NULL, 
                 lastname TEXT NOT NULL, 
                 age INTEGER NOT NULL, 
@@ -22,24 +20,24 @@ sql_statements =  [
                 email TEXT NOT NULL UNIQUE, 
                 mobile TEXT NOT NULL UNIQUE, 
                 password TEXT NOT NULL,
-                FOREIGN KEY (role_id) REFERENCES role(id)
+                FOREIGN KEY (assigned_role_id) REFERENCES role(role_id)
                 );
 			"""
-                ,
                 
+                ,
 			"""
             	CREATE TABLE IF NOT EXISTS membership (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER,
+                id INTEGER PRIMARY KEY,
+                member_user_id INTEGER,
                 registration_date TEXT NOT NULL,
-                FOREIGN KEY(user_id) REFERENCES user(id)
+                FOREIGN KEY(member_user_id) REFERENCES user(user_id)
                 
                 );
 			""",
                 
 			"""
                 CREATE TABLE IF NOT EXISTS address (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                address_id INTEGER PRIMARY KEY,
                 streetname TEXT NOT NULL,
                 house_number INTEGER NOT NULL,
                 zipcode INTEGER NOT NULL,
@@ -50,67 +48,39 @@ sql_statements =  [
                      
 			"""
                 CREATE TABLE IF NOT EXISTS user_address (
-                user_id INTEGER,
-                address_id INTEGER,
+                user_Id INTEGER,
+                address_Id INTEGER,
                 PRIMARY KEY (user_id, address_id),
-                FOREIGN KEY (user_id) REFERENCES user(id)
-                FOREIGN KEY (address_id) REFERENCES address(id)
+                FOREIGN KEY (user_Id) REFERENCES user(user_id)
+                FOREIGN KEY (address_Id) REFERENCES address(address_id)
                 );
 			""",
+			"""
+                CREATE TABLE IF NOT EXISTS user_role (
+                user_Id INTEGER,
+                role_id INTEGER,
+                PRIMARY KEY (user_id, role_id),
+                FOREIGN KEY (user_Id) REFERENCES user(user_id)
+                FOREIGN KEY (role_Id) REFERENCES role(role_id)
+                );
+			"""
 ]
 
 
 
 
-def create_tables() -> None:
+def create_tables():
     try:
         with sqlite3.connect('data.db') as conn:
-                cursor = conn.cursor()
-                for statement in  sql_statements:
-                    cursor.execute(statement)
-                
+            cursor = conn.cursor()
+            
+            cursor.execute("PRAGMA foreign_keys = ON;")
+            
+            for statement in sql_statements:
+                cursor.execute(statement)
                 conn.commit()
     except sqlite3.Error as e:
             print(e)
           
 create_tables()
-
-
-def create_user():
-      pass
-
-# def create_consultant():
-#       pass
-
-# def create_member():
-#       pass
-
-# def create_admin():
-#       pass
-
-def change_password():
-      pass
-
-def update_user():
-      pass
-
-def search_user():
-      pass
-
-def delete_user():
-      pass
-
-def reset_user_password():
-      pass
-
-
-def create_backup():
-      pass
-
-def restore_backup():
-      pass
-
-def show_logs():
-      pass
-
 
