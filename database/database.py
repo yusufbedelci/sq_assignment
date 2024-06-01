@@ -63,24 +63,29 @@ sql_statements =  [
                 FOREIGN KEY (user_Id) REFERENCES user(user_id)
                 FOREIGN KEY (role_Id) REFERENCES role(role_id)
                 );
+			""",
 			"""
-]
-
-
-
-
-def create_tables():
-    try:
-        with sqlite3.connect('data.db') as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("PRAGMA foreign_keys = ON;")
-            
-            for statement in sql_statements:
-                cursor.execute(statement)
-                conn.commit()
-    except sqlite3.Error as e:
-            print(e)
-          
-create_tables()
+                CREATE TABLE IF NOT EXISTS user_profile (                
+                profile_id INTEGER PRIMARY KEY , 
+                name TEXT NOT NULL, 
+                lastname TEXT NOT NULL, 
+                age INTEGER NOT NULL, 
+                gender TEXT NOT NULL, 
+                weight INTEGER NOT NULL, 
+                FOREIGN KEY (profile_Id) REFERENCES user(user_id)
+                );
+			""",
+            """
+            INSERT INTO role (role_id,name) VALUES (1,'super_admin');
+            """,
+            """
+            INSERT INTO user (assigned_role_id, email, mobile, password) VALUES (1, 'super@company.nl',0612341566,'test1234');
+            """,
+            """
+            INSERT INTO user_profile (name, lastname, age, gender, weight) VALUES ('SUPER', 'USER', 20, 'male',200);
+            """,
+            """
+            INSERT INTO user_role (user_id, role_id) VALUES (1,1);
+            """
+            ]
 
