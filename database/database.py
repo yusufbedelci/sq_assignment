@@ -1,6 +1,6 @@
 import sqlite3
 
-sql_statements =  [
+CREATE_TABLES =  [
 			"""
                 CREATE TABLE IF NOT EXISTS role (
                 role_id INTEGER PRIMARY KEY,
@@ -12,11 +12,6 @@ sql_statements =  [
 			CREATE TABLE IF NOT EXISTS user (
                 user_id INTEGER PRIMARY KEY , 
                 assigned_role_id INTEGER,
-                name TEXT NOT NULL, 
-                lastname TEXT NOT NULL, 
-                age INTEGER NOT NULL, 
-                gender TEXT NOT NULL, 
-                weight INTEGER NOT NULL, 
                 email TEXT NOT NULL UNIQUE, 
                 mobile TEXT NOT NULL UNIQUE, 
                 password TEXT NOT NULL,
