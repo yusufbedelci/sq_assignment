@@ -89,3 +89,20 @@ sql_statements =  [
             """
             ]
 
+def connect():
+    return sqlite3.connect("data.db")
+
+
+def create_tables(connection):
+    with connection:
+        connection.execute('PRAGMA foreign_keys = ON;')
+        for statement in CREATE_TABLES:
+            connection.execute(statement)
+
+
+def get_user(connection, email, password):
+        connection.execute(f'SELECT name || " " || lastname AS fullname, user_id AS  id, email,password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id WHERE email="{email}" AND password="{password}"').fetchone()
+
+c = connect()
+# create_tables(c)
+get_user(c, "super@company.nl", "test1234")
