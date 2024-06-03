@@ -1,4 +1,5 @@
 import sqlite3
+from user import User
 
 CREATE_TABLES =  [
 			#TODO: add cascade on delete
@@ -110,7 +111,6 @@ def create_tables(connection):
 def get_user(connection, email:str, password:str) -> tuple:
 		x = connection.execute(f'SELECT name || " " || lastname AS fullname, user_id AS id, assigned_role_id as role_id, email,password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id WHERE email="{email}" AND password="{password}"').fetchone()
 		# TODO: change __repr__ of this x; the user
-		from user import User
 		fullname, id,role_id, email,password,mobile, age, gender, weight = x
 		new_user = User(id=id,role_id=role_id, name=fullname,email=email,password=password,mobile=mobile)
 		return new_user
