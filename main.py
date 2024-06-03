@@ -28,8 +28,12 @@ def main():
 
     if email is not None and password is not None:
         get_user = database.get_user(con,email, password)
-        if get_user:
-            print(get_user)
+        print(f""" Welcome, {get_user.name} choose one of the options below: """)
+        print(get_user.role_id)
+
+    # database.register_consultant(con,"c3@company.nl","test12345","0612345677")
+    # database.update_consultant(con,3,"0612345699")
+    # database.delete_user(con,3)
 
 
 
