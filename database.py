@@ -146,3 +146,11 @@ def delete_user(connection, user_id):
 		connection.execute(statement)
 	connection.commit()
 	print("User is deleted")
+def get_all_users(connection):
+	statement = 'SELECT name || " " || lastname AS fullname, user_id AS id, assigned_role_id as role_id, email,username, password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id'
+	users = connection.execute(statement).fetchall()
+	for user in users:
+		fullname,id, role_id, email, username, password, mobile, age, gender, weight = user
+		x = User(id,fullname, role_id, email,username, password, mobile, age, gender, weight)
+		# TODO: change the order!
+		print(x.id)
