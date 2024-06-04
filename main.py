@@ -2,8 +2,12 @@ import database
 
 
 
+
+
+
 def main():
     con = database.connect()
+    database.create_tables(con)
 
 
     print(
@@ -23,11 +27,11 @@ def main():
 
 
     """)
-    email = input("Email:")
+    username = input("Username:")
     password = input("Password:")
 
-    if email is not None and password is not None:
-        get_user = database.get_user(con,email, password)
+    if username is not None and password is not None:
+        get_user = database.get_user(con,username, password)
         print(f""" Welcome, {get_user.name} choose one of the options below: """)
         print(get_user.role_id)
 

@@ -14,6 +14,7 @@ CREATE_TABLES =  [
 			CREATE TABLE IF NOT EXISTS user (
 				user_id INTEGER PRIMARY KEY ,
 				assigned_role_id INTEGER,
+				username TEXT NOT NULL UNIQUE,
 				email TEXT NOT NULL UNIQUE,
 				mobile TEXT NOT NULL UNIQUE,
 				password TEXT NOT NULL,
@@ -81,7 +82,7 @@ CREATE_TABLES =  [
 			"INSERT INTO role (role_id,name) VALUES (2,'admin');",
 		
 			"""
-			INSERT INTO user (assigned_role_id, email, mobile, password) VALUES (1, 'super@company.nl',0612341566,'test1234');
+			INSERT INTO user (assigned_role_id,username, email, mobile, password) VALUES (1,'super_admin','super@company.nl',0612341566,'Admin_123?');
 			""",
 			"""
 			INSERT INTO user_profile (name, lastname, age, gender, weight) VALUES ('SUPER', 'USER', 20, 'male',200);
@@ -108,8 +109,8 @@ def create_tables(connection):
 			connection.execute(statement)
 
 
-def get_user(connection, email:str, password:str) -> tuple:
-		x = connection.execute(f'SELECT name || " " || lastname AS fullname, user_id AS id, assigned_role_id as role_id, email,password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id WHERE email="{email}" AND password="{password}"').fetchone()
+def get_user(connection, username:str, password:str) -> tuple:
+		x = connection.execute(f'SELECT name || " " || lastname AS fullname, user_id AS id, assigned_role_id as role_id, email,password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id WHERE username="{username}" AND password="{password}"').fetchone()
 		# TODO: change __repr__ of this x; the user
 		fullname, id,role_id, email,password,mobile, age, gender, weight = x
 		new_user = User(id=id,role_id=role_id, name=fullname,email=email,password=password,mobile=mobile)
