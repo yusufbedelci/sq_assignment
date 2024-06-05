@@ -114,7 +114,7 @@ def get_user(connection, username:str, password:str) -> tuple:
 		try:
 			user_object = connection.execute(f'SELECT name || " " || lastname AS fullname, user_id AS id, assigned_role_id as role_id, email,username, password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id WHERE username="{username}" AND password="{password}"').fetchone()
 			fullname, id,role_id, email,username, password,mobile, age, gender, weight, = user_object
-			new_user = User(id,role_id,username,email,password,mobile,fullname, age, gender, weight)
+			new_user = User(id,fullname,role_id,email,username,password,mobile, age, gender, weight)
 			return new_user
 		except:
 			# TODO change global Exception to custom Exception.
@@ -155,10 +155,9 @@ def delete_user(connection, user_id):
 
 
 def get_all_users(connection):
-	statement = 'SELECT name || " " || lastname AS fullname, user_id AS id, assigned_role_id as role_id, email,username, password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id'
+	statement = 'SELECT user_id AS id, name || " " || lastname AS fullname, assigned_role_id as role_id , email, username, password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id'
 	users = connection.execute(statement).fetchall()
 	for user in users:
-		fullname,id, role_id, email, username, password, mobile, age, gender, weight = user
-		x = User(id,fullname, role_id, email,username, password, mobile, age, gender, weight)
-		# TODO: change the order!
-		print(x.id)
+		id, fullname, role_id, email, username, password, mobile, age, gender, weight = user
+		x = User(id,fullname,role_id, email,username, password, mobile, age, gender, weight)
+		return x.fullname
