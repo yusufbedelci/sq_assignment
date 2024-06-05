@@ -145,12 +145,7 @@ def update_consultant(connection,assigned_role_id,mobile):
 
 
 
-def delete_user(connection, user_id):
-	statements = ['PRAGMA foreign_keys = ON;',f'DELETE from user WHERE user_id="{user_id}"']
-	for statement in statements:
-		connection.execute(statement)
-	connection.commit()
-	print("User is deleted")
+		statements = ['PRAGMA foreign_keys = ON;',f'DELETE from user WHERE user_id="{user_id}"']
 
 
 
