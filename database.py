@@ -1,5 +1,5 @@
 import sqlite3
-from user import User
+from user import Profile, User
 
 CREATE_TABLES =  [
 			#TODO: add cascade on delete
@@ -18,7 +18,7 @@ CREATE_TABLES =  [
 				email TEXT NOT NULL UNIQUE,
 				mobile TEXT NOT NULL UNIQUE,
 				password TEXT NOT NULL,
-				FOREIGN KEY (assigned_role_id) REFERENCES role(role_id)
+				FOREIGN KEY (assigned_role_id) REFERENCES role(role_id) ON DELETE CASCADE
 				);
 			"""
 
@@ -70,7 +70,7 @@ CREATE_TABLES =  [
 				age INTEGER NOT NULL,
 				gender TEXT NOT NULL,
 				weight INTEGER NOT NULL,
-				FOREIGN KEY (profile_Id) REFERENCES user(user_id)
+				FOREIGN KEY (profile_Id) REFERENCES user(user_id) ON DELETE CASCADE
 				);
 			""",
 			"""
@@ -110,15 +110,14 @@ def create_tables(connection):
 
 
 def get_user(connection, username:str, password:str) -> tuple:
-		
-		try:
-			user_object = connection.execute(f'SELECT name || " " || lastname AS fullname, user_id AS id, assigned_role_id as role_id, email,username, password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id WHERE username="{username}" AND password="{password}"').fetchone()
+		user_object = connection.execute(f'SELECT name || " " || lastname AS fullname, user_id AS id, assigned_role_id as role_id, email,username, password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id WHERE username="{username}" AND password="{password}"').fetchone()
+		if(user_object is not None):
 			fullname, id,role_id, email,username, password,mobile, age, gender, weight, = user_object
-			new_user = User(id,fullname,role_id,email,username,password,mobile, age, gender, weight)
+			new_user = Profile(id,fullname,role_id,email,username,password,mobile, age, gender, weight)
 			return new_user
-		except:
-			# TODO change global Exception to custom Exception.
-			raise Exception("An Error occured. Please try again")
+		else:
+			print("User is invalid!")
+		# TODO change global Exception to custom Exception.
 			
 
 
@@ -149,16 +148,47 @@ def update_consultant(connection,assigned_role_id,mobile):
 
 
 
+def get_all_users(connection, user_id):
+	users = connection.execute(f'SELECT name || " " || lastname AS fullname, user_id AS id, assigned_role_id as role_id, email,username, password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id').fetchall()
+	user_objects = []
+	if users != 0:
+		for user in users:
+				fullname, id,role_id, email,username, password,mobile, age, gender, weight, = user
+				user_profile = Profile(id,fullname,role_id,email,username,password,mobile, age, gender, weight)
+				if id != user_id:
+					user_objects.append(user_profile)
+	else:
+		print()
+		print("Message: \nThere are currenlty no users stored in the database.")
+		
+	print("-----------------------------------USERS----------------------------------------------------")
+	for u in user_objects:
+		print("ID:", u.id)
+		print("Full Name:", u.fullname)
+		print("Role ID:", u.role_id)
+		print("Email:", u.email)
+		print("Username:", u.username)
+		print("Password:", u.password)
+		print("Mobile:", u.mobile)
+		print("Age:", u.age)
+		print("Gender:", u.gender)
+		print("Weight:", u.weight)
+		print("-----------------------------------------------------------------------------------------")
 
 
+
+
+def delete_user(connection,role_id, user_id):
+	if int(user_id) != 1 and int(role_id) == 1 or int(role_id) == 2:
 		statements = ['PRAGMA foreign_keys = ON;',f'DELETE from user WHERE user_id="{user_id}"']
+		for statement in statements:
+			connection.execute(statement)
+		connection.commit()
+		print("User is deleted")
+	else:
+		# TODO: make try-except block
+
+		print("Deletion has failed")
 
 
 
-def get_all_users(connection):
-	statement = 'SELECT user_id AS id, name || " " || lastname AS fullname, assigned_role_id as role_id , email, username, password, mobile, age, gender, weight FROM user INNER JOIN user_profile ON user.user_id = user_profile.profile_id'
-	users = connection.execute(statement).fetchall()
-	for user in users:
-		id, fullname, role_id, email, username, password, mobile, age, gender, weight = user
-		x = User(id,fullname,role_id, email,username, password, mobile, age, gender, weight)
-		return x.fullname
