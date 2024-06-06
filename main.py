@@ -26,17 +26,17 @@ def main():
                     ********************************************************
     """)
     # username = input("Username:")
-    username = "super_admin"
-    password = "Admin_123?"
     # password = input("Password:")
+    count = 0
+
     while True:
+        username = "super_admin"
+        password = "Admin_123?"
         if username and password:
                 user_account = database.get_user(con,username, password)
                 if user_account != None:
                     if user_account.role_id == 1:
-                        print(database.get_all_users(con))
                         choice = input(f""" 
-            
                         Welcome, {user_account.username} choose one of the options below. Role: {user_account.role_id}: 
                         (q)uit, to Exit the program.
                         (s)how users and roles
@@ -56,9 +56,10 @@ def main():
                         (s)earch for member
                         """)
                         if choice == "q":
+                            print("You have been logged out")
                             break
                         elif choice == "s":
-                            pass
+                            database.get_all_users(con, user_account.role_id)
                         
                         elif choice == "u":
                             pass
@@ -90,7 +91,9 @@ def main():
                             database.register_administrative_user(con, user_account.role_id,2,username,email,password,mobile, name, lastname,age, gender,weight)
                         
                         elif choice == "d":
-                            pass
+                            print(database.get_all_users(con, user_account.role_id))
+                            user_id = input("Which user do you want to delete? ")
+                            database.delete_user(con,user_account.role_id,user_id)
                     
                          
                          
