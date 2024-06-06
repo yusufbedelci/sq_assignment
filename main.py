@@ -62,6 +62,32 @@ def main():
                         
                         elif choice == "u":
                             pass
+                        elif choice == "a":
+                            print(count)
+                            count+=402
+                            print(count)
+                            # name = input("Firstname of new admin: ")
+                            # lastname = input("Lastname of new admin: ")
+                            username = f"qmina{count}"
+                            email = f"qmin1{count}@company.nl"
+                            password = "Test123"
+                            mobile = f"0612362{count}"
+
+
+                            # username = input("Username of new admin: ")
+                            # email = input("Email of new admin: ")
+                            # password = input("Password of new admin: ")
+                            age = 400
+                            # age = input("Age of user")
+                            gender = "Female"
+                            # gender = input("Gender of user")
+                            # weight = input("Weight of user")
+                            weight = 10000
+                            name = "Mary"
+                            lastname = "Joe"
+
+
+                            database.register_administrative_user(con, user_account.role_id,2,username,email,password,mobile, name, lastname,age, gender,weight)
                         
                         elif choice == "d":
                             pass
