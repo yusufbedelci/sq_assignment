@@ -123,12 +123,18 @@ def get_user(connection, username:str, password:str) -> tuple:
 
 
 
-def register_consultant(connection,email:str, password:str, mobile:str) -> tuple:
-	statements = ['PRAGMA foreign_keys = ON;',f'INSERT INTO user(assigned_role_id,email,mobile, password) VALUES(2,"{email}","{mobile}","{password}")']
-	for statement in statements:
-		connection.execute(statement)
-	connection.commit()
-	print("Consultant created!")
+def register_administrative_user(connection,current_role, new_user_role,
+									username:str, email:str, password:str,mobile,
+									name, lastname,age, gender, weight) -> tuple:
+	
+	if current_role == 1 or current_role == 2:
+		statements = ['PRAGMA foreign_keys = ON;',f'INSERT INTO user(assigned_role_id,username, email,mobile, password) VALUES({new_user_role},"{username}","{email}","{mobile}","{password}");',f'INSERT INTO user_profile (name, lastname, age, gender, weight) VALUES ("{name}", "{lastname}", "{age}", "{gender}","{weight}");']
+		for statement in statements:
+			connection.execute(statement)
+		connection.commit()
+		return True
+	else:
+		return False
 
 
 
