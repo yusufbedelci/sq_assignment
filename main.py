@@ -1,9 +1,10 @@
+import hashlib
 from database import initialize_database_tables, connect
 import db
 
 
 def main():
-    initialize_database_tables()
+    # initialize_database_tables()
     con = connect()
     print(
         """
@@ -59,51 +60,47 @@ def main():
                     elif choice == "u":
                         pass
                     elif choice == "a":
-                        print(count)
-                        count += 4100
-                        print(count)
-                        # name = input("Firstname of new admin: ")
-                        # lastname = input("Lastname of new admin: ")
-                        username = f"qmina{count}"
-                        email = f"qmin1{count}@company.nl"
-                        password = "Test123"
-                        mobile = f"0612362{count}"
+                        if user_account.role_id == 1:
+                            count += 41001
+                            # name = input("Firstname of new admin: ")
+                            # lastname = input("Lastname of new admin: ")
+                            username = f"qmina{count}"
+                            email = f"qmin1{count}@company.nl"
+                            password = hashlib.sha256("1234".encode())
+                            password_hash = password.hexdigest()
+                            mobile = f"0612362{count}"
 
-                        # username = input("Username of new admin: ")
-                        # email = input("Email of new admin: ")
-                        # password = input("Password of new admin: ")
-                        age = 400
-                        # age = input("Age of user")
-                        gender = "Female"
-                        # gender = input("Gender of user")
-                        # weight = input("Weight of user")
-                        weight = 10000
-                        name = "Mary"
-                        lastname = "Joe"
+                            username = input("Username of new admin: ")
+                            email = input("Email of new admin: ")
+                            # password = input("Password of new admin: ")
+                            age = 10 + count
+                            # age = input("Age of user")
+                            gender = "Female"
+                            # gender = input("Gender of user")
+                            # weight = input("Weight of user")
+                            weight = 100
+                            name = "Mary"
+                            lastname = "Joe"
 
-                        db.create_admin_account(
-                            con,
-                            user_account.role_id,
-                            2,
-                            username,
-                            email,
-                            password,
-                            mobile,
-                            name,
-                            lastname,
-                            age,
-                            gender,
-                            weight,
-                        )
+                            db.create_admin_account(
+                                con,
+                                user_account.role_id,
+                                2,
+                                username,
+                                email,
+                                password_hash,
+                                mobile,
+                                name,
+                                lastname,
+                                age,
+                                gender,
+                                weight,
+                            )
 
                     elif choice == "d":
                         print(db.get_all_users(con, user_account.role_id))
                         user_id = input("Which user do you want to delete? ")
                         db.delete_user(con, user_account.role_id, user_id)
-
-    # database.register_consultant(con,"c3@company.nl","test12345","0612345677")
-    # database.update_consultant(con,3,"0612345699")
-    # database.delete_user(con,3)
 
 
 if "__main__" == __name__:
