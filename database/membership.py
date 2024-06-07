@@ -3,7 +3,7 @@ CREATE_MEMBERSHIP_TABLE = """
 				id INTEGER PRIMARY KEY,
 				member_user_id INTEGER,
 				registration_date TEXT NOT NULL,
-				FOREIGN KEY(member_user_id) REFERENCES user(user_id)
+				FOREIGN KEY(member_user_id) REFERENCES user(user_id) ON DELETE CASCADE
 
 				);
 			"""

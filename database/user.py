@@ -15,8 +15,8 @@ CREATE_USER_ROLE_TABLE = """
                 user_Id INTEGER,
                 role_id INTEGER,
                 PRIMARY KEY (user_id, role_id),
-                FOREIGN KEY (user_Id) REFERENCES user(user_id)
-                FOREIGN KEY (role_Id) REFERENCES role(role_id)
+                FOREIGN KEY (user_Id) REFERENCES user(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (role_Id) REFERENCES role(role_id) ON DELETE CASCADE
                 );
             """
 
