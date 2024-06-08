@@ -1,6 +1,5 @@
 import hashlib
 
-
 SQL_CREATE_USER_TABLE = """
                 CREATE TABLE IF NOT EXISTS user (
                 user_id INTEGER PRIMARY KEY ,
@@ -45,10 +44,17 @@ CREATE_SUPER_PROFILE = [
     "PRAGMA foreign_keys = ON;",
     "INSERT INTO user_profile (name, lastname, age, gender, weight) VALUES ('SUPER', 'USER', 20, 'male',200);",
 ]
+
 password = hashlib.sha256("Admin_123?".encode()).hexdigest()
 CREATE_SUPER_ADMIN = [
     "PRAGMA foreign_keys = ON;",
     f"INSERT INTO user (assigned_role_id,username, email, mobile, password) VALUES (1,'super_admin','super@company.nl',0612341566,'{password}');",
+
+
+CREATE_SUPER_ADMIN = [
+    "PRAGMA foreign_keys = ON;",
+    "INSERT INTO user (assigned_role_id,username, email, mobile, password) VALUES (1,'super_admin','super@company.nl',0612341566,'Admin_123?');",
+
 ]
 
 
