@@ -17,3 +17,13 @@ class Profile(User):
         self.weight =weight
     def __str__(self) -> str:
         return f"Name: {self.fullname} Role: {self.role_id}, Email: {self.email} username:{self.username}"
+
+    def get_role(self):
+        if self.role_id == 1:
+            return "super_user"
+        elif self.role_id == 2:
+            return "admin"
+        elif self.role_id == 3:
+            return "member"
+        else:
+            return "Invalid role"
