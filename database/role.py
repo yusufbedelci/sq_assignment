@@ -10,6 +10,7 @@ INSERT_DEFAULT_ROLES = [
     "INSERT INTO role (role_id, name) SELECT 1, 'super_admin' WHERE NOT EXISTS (SELECT 1 FROM role WHERE role_id = 1);",
     "INSERT INTO role (role_id, name) SELECT 2, 'admin' WHERE NOT EXISTS (SELECT 1 FROM role WHERE role_id = 2);",
     "INSERT INTO role (role_id, name) SELECT 3, 'consultant' WHERE NOT EXISTS (SELECT 1 FROM role WHERE role_id = 3);",
+    "INSERT INTO role (role_id, name) SELECT 4, 'member' WHERE NOT EXISTS (SELECT 1 FROM role WHERE role_id = 4);"
 ]
 
 
