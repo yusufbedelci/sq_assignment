@@ -1,63 +1,170 @@
 import os
-from entities.user import User
 import hashlib
 
+from config import Config
+from utils import rsa_encrypt, rsa_decrypt
+from managers.base_manager import BaseManager
+from entities.user import User
 
-class UserManager:
-    @staticmethod
-    def initialize(con):
+
+class UserManager(BaseManager):
+    def __init__(self, config: Config):
+        super().__init__(config)
+
+    def initialize(self):
         SQL_CREATE_USER_TABLE = """
                 CREATE TABLE IF NOT EXISTS users (
-                user_id INTEGER PRIMARY KEY ,
+                id INTEGER PRIMARY KEY ,
                 username TEXT NOT NULL UNIQUE,
                 password TEXT NOT NULL,
                 role TEXT NOT NULL
                 );
             """
 
-        cursor = con.cursor()
-        cursor.execute(SQL_CREATE_USER_TABLE)
-        con.commit()
-        cursor.close()
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(SQL_CREATE_USER_TABLE)
+            self.config.con.commit()
+        finally:
+            cursor.close()
 
-    @staticmethod
-    def create_super_admin(con):
-        password = UserManager.password_hash("Admin_123?")
-        CREATE_SUPER_ADMIN = f"INSERT INTO users (username, password, role) VALUES ('super_admin', '{password}', '{User.Role.SUPER_ADMIN.value}');"
-        cursor = con.cursor()
-        cursor.execute(CREATE_SUPER_ADMIN)
-        con.commit()
-        cursor.close()
-
-    @staticmethod
-    def login(con, username, password):
-        cursor = con.cursor()
-
-        cursor.execute(
-            "SELECT * FROM users WHERE username = ?;",
-            (username,)
+    def create_super_admin(self):
+        # check if super admin already exists
+        encrypted_role = rsa_encrypt(
+            User.Role.SUPER_ADMIN.value, self.config.public_key
         )
-        result = cursor.fetchone()
-        cursor.close()
-        if result is None:
-            return None
-        
-        user = User(*result)
-        if UserManager.verify_password(user.password, password):
-            return user
-        else:
+        SQL_SELECT_SUPER_ADMIN = f"SELECT * FROM users WHERE role = ?;"
+
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(SQL_SELECT_SUPER_ADMIN, (encrypted_role,))
+            result = cursor.fetchone()
+            if result is not None:
+                return
+        finally:
+            cursor.close()
+
+        # create super admin
+        password = self.hash_and_salt("Admin_123?")
+        encrypted_username = rsa_encrypt("super_admin", self.config.public_key)
+        encrypted_password = rsa_encrypt(password, self.config.public_key)
+
+        SQL_CREATE_SUPER_ADMIN = (
+            f"INSERT INTO users (username, password, role) VALUES (?, ?, ?);"
+        )
+
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(
+                SQL_CREATE_SUPER_ADMIN,
+                (encrypted_username, encrypted_password, encrypted_role),
+            )
+            self.config.con.commit()
+        finally:
+            cursor.close()
+
+    def login(self, username, password):
+        user = self.get_user(username)
+        if user is None:
             return None
 
-    @staticmethod
-    def password_hash(password):
+        return user if self.verify_password(user.password, password) else None
+
+    def hash_and_salt(self, password):
         salt = os.urandom(16)
         hashed_password = hashlib.sha256(salt + password.encode()).hexdigest()
         salt_hex = salt.hex()
         return f"{salt_hex}:{hashed_password}"
-    
-    @staticmethod
-    def verify_password(stored_password, provided_password):
-        salt_hex, hashed_password = stored_password.split(':')
+
+    def verify_password(self, stored_password, provided_password):
+        salt_hex, hashed_password = stored_password.split(":")
         salt = bytes.fromhex(salt_hex)
-        provided_hashed_password = hashlib.sha256(salt + provided_password.encode()).hexdigest()
+        provided_hashed_password = hashlib.sha256(
+            salt + provided_password.encode()
+        ).hexdigest()
         return provided_hashed_password == hashed_password
+
+    def get_users(self) -> list[User]:
+        SQL_SELECT_USERS = "SELECT * FROM users;"
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(SQL_SELECT_USERS)
+            result = cursor.fetchall()
+        finally:
+            cursor.close()
+
+        users = []
+        for user_data in result:
+            user = User(*user_data)
+            user.username = rsa_decrypt(user.username, self.config.private_key)
+            user.password = rsa_decrypt(user.password, self.config.private_key)
+            user.role = rsa_decrypt(user.role, self.config.private_key)
+            users.append(user)
+
+        return users
+
+    def get_user(self, username: str) -> User:
+        for user in self.get_users():
+            if user.username == username:
+                return user
+        return None
+
+    def create_user(self, username: str, password: str, role: str):
+        if next(filter(lambda user: user.username == username, self.get_users()), None):
+            return None
+
+        encrypted_username = rsa_encrypt(username, self.config.public_key)
+        encrypted_password = rsa_encrypt(password, self.config.public_key)
+        encrypted_role = rsa_encrypt(role, self.config.public_key)
+
+        SQL_CREATE_USER = """
+            INSERT INTO users (username, password, role) VALUES (?, ?, ?);
+        """
+
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(
+                SQL_CREATE_USER,
+                (encrypted_username, encrypted_password, encrypted_role),
+            )
+            self.config.con.commit()
+        finally:
+            cursor.close()
+
+        return self.get_user(username)
+
+    def update_user(self, user: User, username: str, password: str, role: str):
+        if next(filter(lambda user: user.username == username, self.get_users()), None):
+            return None
+
+        encrypted_username = rsa_encrypt(username, self.config.public_key)
+        encrypted_password = rsa_encrypt(password, self.config.public_key)
+        encrypted_role = rsa_encrypt(role, self.config.public_key)
+
+        SQL_UPDATE_USER = """
+            UPDATE users SET username = ?, password = ?, role = ? WHERE user_id = ?;
+        """
+
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(
+                SQL_UPDATE_USER,
+                (encrypted_username, encrypted_password, encrypted_role, user.id),
+            )
+            self.config.con.commit()
+        finally:
+            cursor.close()
+
+        return self.get_user(username)
+
+    def delete_user(self, user: User):
+        SQL_DELETE_USER = """
+            DELETE FROM users WHERE id = ?;
+        """
+
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(SQL_DELETE_USER, (user.id,))
+            self.config.con.commit()
+        finally:
+            cursor.close()
