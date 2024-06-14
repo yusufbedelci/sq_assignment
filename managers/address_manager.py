@@ -1,34 +1,85 @@
+from config import Config
+from managers.base_manager import BaseManager
 from entities.address import Address
 
 
-class AddressManager:
-    def __init__(self, con):
-        self.con = con
+class AddressManager(BaseManager):
+    def __init__(self, config: Config):
+        super().__init__(config)
 
-    @staticmethod
-    def initialize(con):
+    def initialize(self):
         SQL_CREATE_ADDRESS_TABLE = """
             CREATE TABLE IF NOT EXISTS addresses (
-                address_id INTEGER PRIMARY KEY,
+                id INTEGER PRIMARY KEY,
                 street_name TEXT NOT NULL,
                 house_number TEXT NOT NULL,
                 zip_code TEXT NOT NULL,
                 city TEXT NOT NULL
+                FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
             );
         """
 
-        SQL_CREATE_USER_ADDRESS_TABLE = """
-            CREATE TABLE IF NOT EXISTS user_addresses (
-                user_id INTEGER,
-                address_id INTEGER,
-                PRIMARY KEY (user_id, address_id),
-                FOREIGN KEY (user_id) REFERENCES user(user_id),
-                FOREIGN KEY (address_id) REFERENCES address(address_id)
-            );
-        """
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(SQL_CREATE_ADDRESS_TABLE)
+            self.config.con.commit()
+        finally:
+            cursor.close()
 
-        cursor = con.cursor()
-        cursor.execute(SQL_CREATE_ADDRESS_TABLE)
-        cursor.execute(SQL_CREATE_USER_ADDRESS_TABLE)
-        con.commit()
-        cursor.close()
+    def get_addresses(self) -> list[Address]:
+        SQL_SELECT_ADDRESSES = "SELECT * FROM addresses;"
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(SQL_SELECT_ADDRESSES)
+            result = cursor.fetchall()
+        finally:
+            cursor.close()
+
+        return [Address(*address_data) for address_data in result]
+
+    def get_address(self, id: int) -> Address:
+        SQL_SELECT_ADDRESS = "SELECT * FROM addresses WHERE id = ?;"
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(SQL_SELECT_ADDRESS, (id,))
+            result = cursor.fetchone()
+        finally:
+            cursor.close()
+
+        return Address(*result) if result is not None else None
+
+    def create_address(
+        self, street_name: str, house_number: str, zip_code: str, city: str
+    ) -> Address:
+        SQL_CREATE_ADDRESS = "INSERT INTO addresses (street_name, house_number, zip_code, city) VALUES (?, ?, ?, ?);"
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(
+                SQL_CREATE_ADDRESS, (street_name, house_number, zip_code, city)
+            )
+            self.config.con.commit()
+        finally:
+            cursor.close()
+
+        return self.get_address(cursor.lastrowid)
+
+    def update_address(
+        self,
+        address: Address,
+        street_name: str,
+        house_number: str,
+        zip_code: str,
+        city: str,
+    ):
+        SQL_UPDATE_ADDRESS = "UPDATE addresses SET street_name = ?, house_number = ?, zip_code = ?, city = ? WHERE id = ?;"
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(
+                SQL_UPDATE_ADDRESS,
+                (street_name, house_number, zip_code, city, address.id),
+            )
+            self.config.con.commit()
+        finally:
+            cursor.close()
+
+        return self.get_address(address.id)
