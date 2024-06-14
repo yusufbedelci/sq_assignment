@@ -1,11 +1,10 @@
-from kivy.app import App
-from kivy.uix.label import Label
+import tkinter as tk
 
+root = tk.Tk()
+root.title("Simple Tkinter Window")
+root.geometry("300x200")
 
-class MyApp(App):
-    def build(self):
-        return Label(text="Hello, Kivy!")
+label = tk.Label(root, text="Hello, Tkinter!")
+label.pack()
 
-
-if __name__ == "__main__":
-    MyApp().run()
+root.mainloop()
