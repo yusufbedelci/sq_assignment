@@ -10,12 +10,14 @@ class MemberManager:
         SQL_CREATE_MEMBER_TABLE = """
             CREATE TABLE IF NOT EXISTS members (
                 member_id INTEGER PRIMARY KEY,
+                membership_id TEXT UNIQUE NOT NULL,
                 name TEXT NOT NULL,
                 lastname TEXT NOT NULL,
                 age INTEGER NOT NULL,
                 gender TEXT NOT NULL,
                 weight INTEGER NOT NULL,
                 address_id INTEGER,
+                registration_date TEXT NOT NULL,
                 FOREIGN KEY (address_id) REFERENCES address(address_id)
             );
         """

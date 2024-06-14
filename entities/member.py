@@ -8,6 +8,8 @@ class Member:
 
     def __init__(
         self,
+        id,
+        registration_date,
         first_name,
         last_name,
         age,
@@ -16,9 +18,10 @@ class Member:
         address,
         email,
         phone_number,
-        membership_type,
-        membership_status,
+        membership_id
     ):
+        self.id = id
+        self.registration_date = registration_date
         self.first_name = first_name
         self.last_name = last_name
         self.age = age
@@ -27,3 +30,4 @@ class Member:
         self.address = address
         self.email = email
         self.phone_number = phone_number
+        self.membership_id = membership_id

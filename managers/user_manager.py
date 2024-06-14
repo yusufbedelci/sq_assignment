@@ -1,3 +1,4 @@
+import os
 from entities.user import User
 import hashlib
 
@@ -32,18 +33,31 @@ class UserManager:
     def login(con, username, password):
         cursor = con.cursor()
 
-        hashed_password = UserManager.password_hash(password)
         cursor.execute(
-            "SELECT * FROM users WHERE username = ? AND password = ?",
-            (username, hashed_password),
+            "SELECT * FROM users WHERE username = ?;",
+            (username,)
         )
         result = cursor.fetchone()
         cursor.close()
         if result is None:
             return None
-
-        return User(*result)
+        
+        user = User(*result)
+        if UserManager.verify_password(user.password, password):
+            return user
+        else:
+            return None
 
     @staticmethod
     def password_hash(password):
-        return hashlib.sha256(password.encode()).hexdigest()
+        salt = os.urandom(16)
+        hashed_password = hashlib.sha256(salt + password.encode()).hexdigest()
+        salt_hex = salt.hex()
+        return f"{salt_hex}:{hashed_password}"
+    
+    @staticmethod
+    def verify_password(stored_password, provided_password):
+        salt_hex, hashed_password = stored_password.split(':')
+        salt = bytes.fromhex(salt_hex)
+        provided_hashed_password = hashlib.sha256(salt + provided_password.encode()).hexdigest()
+        return provided_hashed_password == hashed_password
