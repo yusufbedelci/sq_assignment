@@ -7,7 +7,7 @@ from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
 from managers.user_manager import UserManager
 from forms.Form import CreateForm, DeleteForm, UpdateForm
-
+from entities.user import User
 class App:
     config: Config = None
 
@@ -38,16 +38,18 @@ class App:
 
     def create_login_screen(self):
         self.clear_screen()
+        title_label = tk.Label(self.root, text="Login", font=("Arial", 16, "bold"))
+        title_label.pack(pady=10)
 
         self.username_label = tk.Label(self.root, text="Username")
-        self.username_label.pack(pady=5)
-        self.username_entry = tk.Entry(self.root)
-        self.username_entry.pack(pady=5)
+        self.username_label.pack(pady=10)
+        self.username_entry = tk.Entry(self.root, width=100)
+        self.username_entry.pack(pady=10)
 
         self.password_label = tk.Label(self.root, text="Password")
-        self.password_label.pack(pady=5)
-        self.password_entry = tk.Entry(self.root, show="*")
-        self.password_entry.pack(pady=5)
+        self.password_label.pack(pady=10)
+        self.password_entry = tk.Entry(self.root, show="*", width=100)
+        self.password_entry.pack(pady=10)
 
         self.login_button = tk.Button(self.root, text="Login", command=self.login)
         self.login_button.pack(pady=20)
@@ -126,6 +128,7 @@ class App:
             button = tk.Button(
                 self.root,
                 text=option,
+                width=50,
                 command=lambda option=option: handle_option(option),
             )
             button.pack(pady=5)
@@ -144,10 +147,6 @@ class App:
         label = tk.Label(self.root, text="Consultant Panel")
         label.pack()
 
-    def create_delete_screen(self):
-        pass
-
-
     def view_members(self):
         self.clear_screen()
         users = self.member_manager.get_members()
@@ -157,6 +156,9 @@ class App:
 
     def view_sysadmin(self):
         self.clear_screen()
+        title_label = tk.Label(self.root, text="Menu Options: ", font=("Arial", 20, "bold"))
+        title_label.pack(pady=10)
+
         def handle_option(option):
             if option == "Create sysadmin":
                 # self.view_sysadmin()
@@ -167,8 +169,26 @@ class App:
                 delete_form = DeleteForm(self.root, App.config)
                 delete_form.show_form()
 
-            elif option == "Search syadmin":
-                print("page for Search sysadmin")
+            elif option == "List sysadmins":
+                    def on_username_click(event):
+                        item = tree.selection()[0]
+                        update_form = UpdateForm(self.root, App.config)
+                        username = tree.item(item, "values")[0]  
+                        update_form.show_form(username)
+                    self.clear_screen()
+                    tree = ttk.Treeview(self.root, columns=("Username", "Role"), show="headings")
+                    tree.heading("Username", text="Username")
+                    tree.heading("Role", text="Role")
+                    tree.pack(padx=10, pady=10)
+
+                    users = self.user_manager.get_users()
+                    for user in users:
+                        if user.role == User.Role.SYSTEM_ADMIN.value:
+                            username = user.username
+                            role = user.role
+                            tree.insert("", "end", values=(username,role))
+                    tree.bind("<Double-1>", on_username_click)
+                    
 
             elif option == "Update sysadmin":
                 def on_username_click(event):
@@ -178,6 +198,10 @@ class App:
                     update_form.show_form(username)
                     
                 self.clear_screen()
+                label = tk.Label(self.root, text="Create new user", font=("Arial", 16, "bold"))
+                label = tk.Label(self.root, text="Update User")
+
+                label.pack()
                 tree = ttk.Treeview(self.root, columns=("Username", "Role"), show="headings")
                 tree.heading("Username", text="Username")
                 tree.heading("Role", text="Role")
@@ -199,11 +223,13 @@ class App:
             "Delete sysadmin",
             "Search syadmin",
             "Update sysadmin",
+            "List sysadmins",
         ]
         for i, option in enumerate(menu_options):
             button = tk.Button(
                 self.root,
                 text=option,
+                width=50,
                 command=lambda option=option: handle_option(option),
             )
             button.pack(pady=5)
