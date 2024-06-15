@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
-
+from entities.user import User
 from tkinter import messagebox
 from managers.user_manager import UserManager
 from config import Config
@@ -55,9 +55,6 @@ class CreateForm(BaseForm):
             "Member"         
         ]
 
-        
-
-        # Create a Combobox widget
         self.roles_option = ttk.Combobox(self.root, values=options)
         self.roles_option.pack()
 
@@ -69,14 +66,38 @@ class CreateForm(BaseForm):
         username = self.username_entry.get()
         password = self.password_entry.get()
         role = self.roles_option.get()
-        print(username, password, role)
-        
-        print(validate_username(username))
-        print(validate_password(password))
-
+    
         if validate_username(username) and validate_password(password):
             user = self.user_manager.create_user(username, password,role)
             if user is not None:
                 messagebox.showinfo("Information", "User has been created.")
         else:
             messagebox.showinfo("Information", "Please try Again")
+
+
+class DeleteForm(BaseForm):
+    config: Config = None
+    def __init__(self, root, config):
+        super().__init__(root)
+        DeleteForm.config = config
+
+        self.user_manager = UserManager(config)
+
+    def show_form(self):
+        self.clear_screen()
+
+        options = []
+        for user in self.user_manager.get_users():
+            options.append(user.username)
+
+        self.roles_option = ttk.Combobox(self.root, values=options)
+        self.roles_option.pack()
+
+        self.submit_button = tk.Button(self.root, text="Submit", command=self.submit)
+        self.submit_button.pack(pady=20)
+        
+    def submit(self):
+        form_user = self.roles_option.get()
+        deleted_user = self.user_manager.get_user(form_user)
+        self.user_manager.delete_user(deleted_user)
+        messagebox.showinfo("Information", "User has been deleted.")

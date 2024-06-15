@@ -5,7 +5,7 @@ from managers.address_manager import AddressManager
 from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
 from managers.user_manager import UserManager
-from forms.Form import CreateForm
+from forms.Form import CreateForm, DeleteForm
 
 class App:
     config: Config = None
@@ -143,6 +143,9 @@ class App:
         label = tk.Label(self.root, text="Consultant Panel")
         label.pack()
 
+    def create_delete_screen(self):
+        pass
+
 
     def view_members(self):
         self.clear_screen()
@@ -157,11 +160,12 @@ class App:
             if option == "Create sysadmin":
                 # self.view_sysadmin()
                 form = CreateForm(self.root, App.config)
-                if form.show_form():
-                    self.create_system_admin_screen()
+                form.show_form()
 
             elif option == "Delete sysadmin":
-                print("page for Delete sysadmin")
+                delete_form = DeleteForm(self.root, App.config)
+                delete_form.show_form()
+
             elif option == "Search syadmin":
                 print("page for Search sysadmin")
 

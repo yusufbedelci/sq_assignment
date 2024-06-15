@@ -163,8 +163,11 @@ class UserManager(BaseManager):
             cursor = self.config.con.cursor()
             cursor.execute(SQL_DELETE_USER, (user.id,))
             self.config.con.commit()
+        
         finally:
             cursor.close()
+        
+
 
     def check_if_user_exist(self, username):
         if next(filter(lambda user: user.username == username, self.get_users()), None):
