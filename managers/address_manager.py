@@ -14,8 +14,9 @@ class AddressManager(BaseManager):
                 street_name TEXT NOT NULL,
                 house_number TEXT NOT NULL,
                 zip_code TEXT NOT NULL,
-                city TEXT NOT NULL
-                FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE,
+                city TEXT NOT NULL,
+                member_id INTEGER NOT NULL,
+                FOREIGN KEY (member_id) REFERENCES members(id) ON DELETE CASCADE
             );
         """
 
