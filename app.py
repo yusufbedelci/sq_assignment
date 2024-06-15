@@ -5,7 +5,7 @@ from managers.address_manager import AddressManager
 from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
 from managers.user_manager import UserManager
-
+from forms.Form import CreateForm
 
 class App:
     config: Config = None
@@ -54,14 +54,19 @@ class App:
     def logout(self):
         self.user = None
         self.create_login_screen()
+    
+    def go_back(self):
+        self.clear_screen()
 
     def clear_screen(self):
         for widget in self.root.winfo_children():
             widget.destroy()
 
     def login(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
+        # username = self.username_entry.get()
+        # password = self.password_entry.get()
+        username = "super_admin"
+        password = "Admin_123?"
 
         user = self.user_manager.login(username, password)
         if user:
@@ -96,13 +101,13 @@ class App:
     #
     def create_super_admin_screen(self):
         def handle_option(option):
-            if option == "Create System Admin":
-                self.create_system_admin()
-            elif option == "Create Consultant":
-                self.create_consultant()
-            elif option == "View Members":
+            if option == "System Admin":
+                self.view_sysadmin()
+            elif option == "Consultant":
+                self.view_consultant()
+            elif option == "Members":
                 self.view_members()
-            elif option == "View Profiles":
+            elif option == "Profiles":
                 self.view_profiles()
 
         label = tk.Label(self.root, text="Super Admin Panel")
@@ -110,10 +115,10 @@ class App:
 
         # print list of menu options
         menu_options = [
-            "Create System Admin",
-            "Create Consultant",
-            "View Members",
-            "View Profiles",
+            "System Admin",
+            "Consultants",
+            "Members",
+            "Profiles",
         ]
 
         for i, option in enumerate(menu_options):
@@ -137,3 +142,43 @@ class App:
     def create_consultant_screen(self):
         label = tk.Label(self.root, text="Consultant Panel")
         label.pack()
+
+
+    def view_members(self):
+        self.clear_screen()
+        users = self.member_manager.get_members()
+        for user in users:
+            label = tk.Label(self.root, text=f"{user}")
+            label.pack()
+
+    def view_sysadmin(self):
+        self.clear_screen()
+        def handle_option(option):
+            if option == "Create sysadmin":
+                # self.view_sysadmin()
+                form = CreateForm(self.root, App.config)
+                if form.show_form():
+                    self.create_system_admin_screen()
+
+            elif option == "Delete sysadmin":
+                print("page for Delete sysadmin")
+            elif option == "Search syadmin":
+                print("page for Search sysadmin")
+
+            elif option == "Update sysadmin":
+                print("page for update sysadmin")
+
+
+        menu_options = [
+            "Create sysadmin",
+            "Delete sysadmin",
+            "Search syadmin",
+            "Update sysadmin",
+        ]
+        for i, option in enumerate(menu_options):
+            button = tk.Button(
+                self.root,
+                text=option,
+                command=lambda option=option: handle_option(option),
+            )
+            button.pack(pady=5)
