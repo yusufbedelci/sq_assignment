@@ -113,11 +113,25 @@ class UpdateForm(BaseForm):
 
     def show_form(self, username):
         self.clear_screen()
-        updated_user = self.user_manager.get_user(username)
-
-        # Create a title label
+        
         title_label = tk.Label(self.root, text="Update user", font=("Arial", 16, "bold"))
         title_label.pack(pady=10)
+        updated_user = self.user_manager.get_user(username)
+
+        self.current_username_label = tk.Label(self.root, text="Current Username", font=("Arial", 12))
+        self.current_username_label.pack(pady=5)
+        self.current_username_entry = tk.Entry(self.root, width=100)
+        self.current_username_entry.insert(0, updated_user.username)
+        self.current_username_entry.config(state='readonly')
+        self.current_username_entry.pack(pady=5)
+
+        self.current_role_label = tk.Label(self.root, text="Current Role", font=("Arial", 12))
+        self.current_role_label.pack(pady=5)
+        self.current_role_entry = tk.Entry(self.root, width=100)
+        self.current_role_entry.insert(0, updated_user.role)
+        self.current_role_entry.config(state='readonly')
+        self.current_role_entry.pack(pady=5)
+
         self.username_label = tk.Label(self.root, text="Username", font=("Arial", 12))
         self.username_label.pack(pady=5)
         self.username_entry = tk.Entry(self.root, width=100)
@@ -148,17 +162,21 @@ class UpdateForm(BaseForm):
 
 
     def submit(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
-        role = self.roles_option.get()
-    
-        if validate_username(username) and validate_password(password):
-            try:
-                updated_user = self.user_manager.get_user(username)
-                self.user_manager.update_user(updated_user, username, password, role)
-                messagebox.showinfo("Information", "User has been updated successfully.")
-                print("Updated")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to update user: {str(e)}")
-        else:
-            messagebox.showerror("Error", "Invalid username or password format.")
+        current_username = self.current_username_entry.get()  
+        new_username = self.username_entry.get()  
+        new_password = self.password_entry.get()
+        new_role = self.roles_option.get()
+
+        try:
+            user_to_update = self.user_manager.get_user(current_username)
+            if user_to_update is not None:
+                self.user_manager.update_user(user_to_update, new_username, new_password, new_role)
+                updated_user = self.user_manager.get_user(new_username)
+                if updated_user is not None:
+                    messagebox.showinfo("Information", "User has been updated successfully.")
+                else:
+                    messagebox.showerror("Error", "Failed to retrieve updated user.")
+            else:
+                messagebox.showerror("Error", "User not found.")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to update user: {str(e)}")

@@ -138,7 +138,7 @@ class UserManager(BaseManager):
         encrypted_role = rsa_encrypt(role, self.config.public_key)
 
         SQL_UPDATE_USER = """
-            UPDATE users SET username = ?, password = ?, role = ? WHERE user_id = ?;
+            UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?;
         """
 
         try:
@@ -148,11 +148,9 @@ class UserManager(BaseManager):
                 (encrypted_username, encrypted_password, encrypted_role, user.id),
             )
             self.config.con.commit()
-            print(True)
         finally:
             cursor.close()
 
-        return self.get_user(username)
 
     def delete_user(self, user: User):
         SQL_DELETE_USER = """
