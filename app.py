@@ -32,6 +32,7 @@ class App:
         self.user_manager.initialize()
         self.user_manager.create_super_admin()
         self.address_manager.initialize()
+        self.member_manager.initialize()
         self.profile_manager.initialize()
 
     def create_login_screen(self):

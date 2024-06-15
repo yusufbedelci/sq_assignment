@@ -14,10 +14,11 @@ class UserManager(BaseManager):
     def initialize(self):
         SQL_CREATE_USER_TABLE = """
                 CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY ,
+                id INTEGER PRIMARY KEY,
                 username TEXT NOT NULL UNIQUE,
                 password TEXT NOT NULL,
-                role TEXT NOT NULL
+                role TEXT NOT NULL,
+                reset_password BOOLEAN NOT NULL DEFAULT 0
                 );
             """
 
@@ -30,24 +31,16 @@ class UserManager(BaseManager):
 
     def create_super_admin(self):
         # check if super admin already exists
-        encrypted_role = rsa_encrypt(
-            User.Role.SUPER_ADMIN.value, self.config.public_key
-        )
-        SQL_SELECT_SUPER_ADMIN = f"SELECT * FROM users WHERE role = ?;"
-
-        try:
-            cursor = self.config.con.cursor()
-            cursor.execute(SQL_SELECT_SUPER_ADMIN, (encrypted_role,))
-            result = cursor.fetchone()
-            if result is not None:
-                return
-        finally:
-            cursor.close()
+        if any(user.role == User.Role.SUPER_ADMIN.value for user in self.get_users()):
+            return
 
         # create super admin
         password = self.hash_and_salt("Admin_123?")
         encrypted_username = rsa_encrypt("super_admin", self.config.public_key)
         encrypted_password = rsa_encrypt(password, self.config.public_key)
+        encrypted_role = rsa_encrypt(
+            User.Role.SUPER_ADMIN.value, self.config.public_key
+        )
 
         SQL_CREATE_SUPER_ADMIN = (
             f"INSERT INTO users (username, password, role) VALUES (?, ?, ?);"
