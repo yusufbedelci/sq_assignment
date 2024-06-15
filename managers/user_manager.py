@@ -79,12 +79,17 @@ class UserManager(BaseManager):
 
     def get_users(self) -> list[User]:
         SQL_SELECT_USERS = "SELECT * FROM users;"
+        cursor = None
+        result = []
         try:
             cursor = self.config.con.cursor()
             cursor.execute(SQL_SELECT_USERS)
             result = cursor.fetchall()
+        except Exception as e:
+                print(f"Error fetching users: {e}")
         finally:
-            cursor.close()
+            if cursor is not None:
+                cursor.close()
 
         users = []
         for user_data in result:
@@ -103,9 +108,8 @@ class UserManager(BaseManager):
         return None
 
     def create_user(self, username: str, password: str, role: str):
-        if next(filter(lambda user: user.username == username, self.get_users()), None):
+        if self.check_if_user_exist(username):
             return None
-
         encrypted_username = rsa_encrypt(username, self.config.public_key)
         encrypted_password = rsa_encrypt(password, self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
@@ -127,15 +131,14 @@ class UserManager(BaseManager):
         return self.get_user(username)
 
     def update_user(self, user: User, username: str, password: str, role: str):
-        if next(filter(lambda user: user.username == username, self.get_users()), None):
+        if self.check_if_user_exist(username):
             return None
-
         encrypted_username = rsa_encrypt(username, self.config.public_key)
         encrypted_password = rsa_encrypt(password, self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
 
         SQL_UPDATE_USER = """
-            UPDATE users SET username = ?, password = ?, role = ? WHERE user_id = ?;
+            UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?;
         """
 
         try:
@@ -148,7 +151,6 @@ class UserManager(BaseManager):
         finally:
             cursor.close()
 
-        return self.get_user(username)
 
     def delete_user(self, user: User):
         SQL_DELETE_USER = """
@@ -159,5 +161,14 @@ class UserManager(BaseManager):
             cursor = self.config.con.cursor()
             cursor.execute(SQL_DELETE_USER, (user.id,))
             self.config.con.commit()
+        
         finally:
             cursor.close()
+        
+
+
+    def check_if_user_exist(self, username):
+        if next(filter(lambda user: user.username == username, self.get_users()), None):
+            return True
+        else:
+            return False
