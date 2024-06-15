@@ -85,7 +85,8 @@ class DeleteForm(BaseForm):
 
     def show_form(self):
         self.clear_screen()
-
+        title_label = tk.Label(self.root, text="Create new user", font=("Arial", 16, "bold"))
+        title_label.pack()
         options = []
         for user in self.user_manager.get_users():
             options.append(user.username)
