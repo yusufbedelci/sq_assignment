@@ -27,7 +27,7 @@ class MemberManager(BaseManager):
                 email TEXT NOT NULL,
                 phone_number TEXT NOT NULL,
                 registration_date TEXT NOT NULL,
-                membership_id INTEGER NOT NULL,
+                membership_id INTEGER NOT NULL
             );
         """
 
