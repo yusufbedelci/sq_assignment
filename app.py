@@ -1,11 +1,12 @@
 import tkinter as tk
+from tkinter import ttk
 from config import Config
 from tkinter import messagebox
 from managers.address_manager import AddressManager
 from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
 from managers.user_manager import UserManager
-from forms.Form import CreateForm, DeleteForm
+from forms.Form import CreateForm, DeleteForm, UpdateForm
 
 class App:
     config: Config = None
@@ -170,8 +171,28 @@ class App:
                 print("page for Search sysadmin")
 
             elif option == "Update sysadmin":
-                print("page for update sysadmin")
+                def on_username_click(event):
+                    item = tree.selection()[0]
+                    update_form = UpdateForm(self.root, App.config)
+                    username = tree.item(item, "values")[0]  
+                    update_form.show_form(username)
+                    
+                self.clear_screen()
+                tree = ttk.Treeview(self.root, columns=("Username", "Role"), show="headings")
+                tree.heading("Username", text="Username")
+                tree.heading("Role", text="Role")
+                tree.pack(padx=10, pady=10)
 
+                users = self.user_manager.get_users()
+                for user in users:
+                    username = user.username
+                    role = user.role
+                    tree.insert("", "end", values=(username,role))
+
+
+                tree.bind("<Double-1>", on_username_click)
+
+                
 
         menu_options = [
             "Create sysadmin",

@@ -101,3 +101,64 @@ class DeleteForm(BaseForm):
         deleted_user = self.user_manager.get_user(form_user)
         self.user_manager.delete_user(deleted_user)
         messagebox.showinfo("Information", "User has been deleted.")
+
+
+class UpdateForm(BaseForm):
+    config: Config = None
+    def __init__(self, root, config):
+        super().__init__(root)
+        UpdateForm.config = config
+        self.user_manager = UserManager(config)
+    
+
+    def show_form(self, username):
+        self.clear_screen()
+        updated_user = self.user_manager.get_user(username)
+
+        # Create a title label
+        title_label = tk.Label(self.root, text="Update user", font=("Arial", 16, "bold"))
+        title_label.pack(pady=10)
+        self.username_label = tk.Label(self.root, text="Username", font=("Arial", 12))
+        self.username_label.pack(pady=5)
+        self.username_entry = tk.Entry(self.root, width=100)
+        self.username_entry.insert(0, updated_user.username)
+        self.username_entry.pack(pady=5)
+
+        
+        self.password_label  = tk.Label(self.root, text="Please enter the new password",font=("Arial", 12))
+        self.password_label .pack(pady=5)
+        self.password_entry = tk.Entry(self.root, show="*", width=100)
+        self.password_entry.pack(pady=5)
+
+        self.role_label = tk.Label(self.root, text="Select an role:", width=100, font=("Arial", 12))
+        self.role_label.pack(pady=10)
+
+        options = [
+            User.Role.CONSULTANT.value,
+            User.Role.SYSTEM_ADMIN.value,
+            "Member"         
+        ]
+
+        self.roles_option = ttk.Combobox(self.root, values=options)
+        self.roles_option.pack()
+
+        self.submit_button = tk.Button(self.root, text="Submit", command=self.submit)
+        self.submit_button.pack(pady=20)
+
+
+
+    def submit(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        role = self.roles_option.get()
+    
+        if validate_username(username) and validate_password(password):
+            try:
+                updated_user = self.user_manager.get_user(username)
+                self.user_manager.update_user(updated_user, username, password, role)
+                messagebox.showinfo("Information", "User has been updated successfully.")
+                print("Updated")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to update user: {str(e)}")
+        else:
+            messagebox.showerror("Error", "Invalid username or password format.")

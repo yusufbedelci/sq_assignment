@@ -131,9 +131,8 @@ class UserManager(BaseManager):
         return self.get_user(username)
 
     def update_user(self, user: User, username: str, password: str, role: str):
-        if next(filter(lambda user: user.username == username, self.get_users()), None):
+        if self.check_if_user_exist(username):
             return None
-
         encrypted_username = rsa_encrypt(username, self.config.public_key)
         encrypted_password = rsa_encrypt(password, self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
@@ -149,6 +148,7 @@ class UserManager(BaseManager):
                 (encrypted_username, encrypted_password, encrypted_role, user.id),
             )
             self.config.con.commit()
+            print(True)
         finally:
             cursor.close()
 
