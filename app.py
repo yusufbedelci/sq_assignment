@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from config import Config
 from tkinter import messagebox
+from forms.reset_form import UserResetForm
 from managers.address_manager import AddressManager
 from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
@@ -69,16 +70,17 @@ class App:
             widget.destroy()
 
     def login(self):
-        # Uncomment when you are done!
-        # username = self.username_entry.get()
-        # password = self.password_entry.get()
-        username = "super_admin"
-        password = "Admin_123?"
-
+        username = self.username_entry.get()
+        password = self.password_entry.get()
         user = self.user_manager.login(username, password)
         if user:
             self.user = user
-            self.create_main_screen()
+            if user.reset_password == 1:
+                reset_form = UserResetForm(self.root, App.config,self.create_login_screen)
+                reset_form.show_form(self.user, self.user.username)
+                    
+            else:
+                self.create_main_screen()
         else:
             messagebox.showerror("Login Failed", "Invalid username or password")
 
@@ -116,6 +118,11 @@ class App:
                 self.view_consultant()
             elif option == "Members":
                 self.view_members()
+            elif option == "Reset password":
+                self.view_password_reset_screen()
+            elif option == "Reset my password":
+                reset_form = UserResetForm(self.root, App.config, self.create_login_screen)
+                reset_form.show_form(self.user,self.user.username)
 
         label = tk.Label(self.root, text="Super Admin Panel")
         label.pack()
@@ -126,6 +133,7 @@ class App:
             "Consultant",
             "Members",
             "Reset password",
+            "Reset my password",
         ]
 
         for i, option in enumerate(menu_options):
@@ -180,6 +188,28 @@ class App:
 
         label = tk.Label(self.root, text="Consultant Panel")
         label.pack()
+    
+    def view_password_reset_screen(self):
+        self.clear_screen()
+        reset_form = UserResetForm(self.root, App.config, self.create_login_screen)
+        tree = ttk.Treeview(self.root, columns=("Username", "Role", "Reset"), show="headings")
+        def on_username_click(event):
+            item = tree.selection()[0]
+            username = tree.item(item, "values")[0]  
+            reset_form.show_form(self.user,username)
+        
+        users = self.user_manager.get_users()
+        for user in users:
+            if user.role != User.Role.SUPER_ADMIN.value:
+                username = user.username
+                role = user.role
+                reset = user.reset_password
+                tree.insert("", "end", values=(username,role, reset))
+        tree.heading("Username", text="Username")
+        tree.heading("Role", text="Role")
+        tree.heading("Reset", text="Reset")
+        tree.pack(padx=10, pady=10)
+        tree.bind("<Double-1>", on_username_click)
 
         # print list of menu options
         menu_options = [
