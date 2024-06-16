@@ -8,11 +8,11 @@ from config import Config
 from entities.user import User
 from validations import validate_username, validate_password, validate_name
 from forms.Form import BaseForm
-
+from app_logger import AppLogger
 
 class CreateUserForm(BaseForm):
     config: Config = None
-
+    logger = AppLogger("app.log")
     def __init__(self, root, config, role, view_users_callback):
         super().__init__(root)
         CreateUserForm.config = config
@@ -98,6 +98,12 @@ class CreateUserForm(BaseForm):
 
         if len(errors) == 0:
             user = self.user_manager.create_user(username, password, self.role)
+            if self.role == User.Role.SYSTEM_ADMIN.value:
+                CreateUserForm.logger.log_activity(self.role,"New admin user is created",f"username: {username}", False)
+            
+            elif self.role == User.Role.CONSULTANT.value:
+                CreateUserForm.logger.log_activity(self.role,"New Consultant user is created",f"username: {username}", False)
+
             if user is not None:
                 profile = self.profile_manager.create_profile(
                     first_name, last_name, user.id
@@ -226,6 +232,8 @@ class UpdateUserForm(BaseForm):
 
 class DeleteUserForm(BaseForm):
     config: Config = None
+    logger = AppLogger("app.log")
+
 
     def __init__(self, root, config, role, view_users_callback):
         super().__init__(root)
@@ -274,4 +282,6 @@ class DeleteUserForm(BaseForm):
         deleted_user = self.user_manager.get_user(form_user)
         self.user_manager.delete_user(deleted_user)
         messagebox.showinfo("Information", "User has been deleted.")
+        
+        DeleteUserForm.logger.log_activity(f"{self.role}","User is deleted", f"User {deleted_user.username} is deleted",False)
         self.view_users_callback()

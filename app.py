@@ -13,10 +13,11 @@ from forms.user_forms import *
 from forms.member_forms import *
 from entities.user import User
 from entities.member import Member
-
+from app_logger import AppLogger
 
 class App:
-    config: Config = None
+    config: Config
+    logger = AppLogger('my_app.log')
 
     def __init__(self, root, config):
         self.root = root
@@ -27,6 +28,7 @@ class App:
         self.member_manager = MemberManager(config)
         self.profile_manager = ProfileManager(config)
 
+        self.login_attempts = 0
         self.init_db()
 
         self.root.title("Login")
@@ -82,8 +84,15 @@ class App:
                 reset_form.show_form(self.user, self.user.username)
 
             else:
+                App.logger.log_activity(self.user.username,"Login", " ", False)
+
                 self.create_main_screen()
         else:
+            self.login_attempts+=1
+            App.logger.log_activity(f"{username}","Unsuccesfull Login", f"username: {username} is used for a login attempt with a wrong password", False)
+            if self.login_attempts >= 3:
+                App.logger.log_activity(f"{username}","Unsuccesfull Login", f"Multiple usernames and passwords are tried in a row", True)
+
             messagebox.showerror("Login Failed", "Invalid username or password")
 
     def create_main_screen(self):
