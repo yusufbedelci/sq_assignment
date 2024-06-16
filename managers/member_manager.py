@@ -198,3 +198,24 @@ class MemberManager(BaseManager):
             self.config.con.commit()
         finally:
             cursor.close()
+
+    def search_members(self, search_query: str):
+        search_query = search_query.lower()
+        results = []
+
+        for member in self.get_members():
+            if (
+                search_query in str(member.id).lower()
+                or search_query in member.first_name.lower()
+                or search_query in member.last_name.lower()
+                or search_query in str(member.age).lower()
+                or search_query in member.gender.lower()
+                or search_query in str(member.weight).lower()
+                or search_query in member.email.lower()
+                or search_query in member.phone_number.lower()
+                or search_query in member.registration_date.lower()
+                or search_query in member.membership_id.lower()
+            ):
+                results.append(member)
+
+        return results

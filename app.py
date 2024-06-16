@@ -1,3 +1,4 @@
+import os
 import tkinter as tk
 from tkinter import ttk
 from config import Config
@@ -7,6 +8,7 @@ from managers.address_manager import AddressManager
 from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
 from managers.user_manager import UserManager
+from backups import Backups
 
 # from forms.Form import CreateForm, DeleteForm, UpdateForm
 from forms.user_forms import *
@@ -136,6 +138,15 @@ class App:
                     self.root, App.config, self.create_login_screen
                 )
                 reset_form.show_form(self.user, self.user.username)
+                # home button
+                self.home_button = tk.Button(
+                    self.root, text="🏠", command=self.correct_menu()
+                )
+                self.home_button.pack(pady=5)
+            elif option == "Backups":
+                self.view_backups()
+            elif option == "Logout":
+                self.logout()
 
         label = tk.Label(self.root, text="Super Admin Panel")
         label.pack()
@@ -147,6 +158,8 @@ class App:
             "Members",
             "Reset password",
             "Reset my password",
+            "Backups",
+            "Logout",
         ]
 
         for i, option in enumerate(menu_options):
@@ -169,6 +182,22 @@ class App:
                 self.view_consultant()
             elif option == "Members":
                 self.view_members()
+            elif option == "Reset password":
+                self.view_password_reset_screen()
+            elif option == "Reset my password":
+                reset_form = UserResetForm(
+                    self.root, App.config, self.create_login_screen
+                )
+                reset_form.show_form(self.user, self.user.username)
+                # home button
+                self.home_button = tk.Button(
+                    self.root, text="🏠", command=self.correct_menu()
+                )
+                self.home_button.pack(pady=5)
+            elif option == "Backups":
+                self.view_backups()
+            elif option == "Logout":
+                self.logout()
 
         label = tk.Label(self.root, text="System Admin Panel")
         label.pack()
@@ -178,6 +207,9 @@ class App:
             "Consultant",
             "Members",
             "Reset password",
+            "Reset my password",
+            "Backups",
+            "Logout",
         ]
 
         for i, option in enumerate(menu_options):
@@ -195,12 +227,36 @@ class App:
     def create_consultant_screen(self):
         self.clear_screen()
 
-        def handle_sysadmin_options(option):
+        def handle_consultant_options(option):
             if option == "Members":
                 self.view_members()
+            elif option == "Reset my password":
+                reset_form = UserResetForm(
+                    self.root, App.config, self.create_login_screen
+                )
+                reset_form.show_form(self.user, self.user.username)
+                # home button
+                self.home_button = tk.Button(
+                    self.root, text="🏠", command=self.correct_menu()
+                )
+                self.home_button.pack(pady=5)
+            elif option == "Logout":
+                self.logout()
 
         label = tk.Label(self.root, text="Consultant Panel")
         label.pack()
+
+        # print list of menu options
+        menu_options = ["Members", "Reset my password", "Logout"]
+
+        for i, option in enumerate(menu_options):
+            button = tk.Button(
+                self.root,
+                text=option,
+                width=50,
+                command=lambda option=option: handle_consultant_options(option),
+            )
+            button.pack(pady=5)
 
     def view_password_reset_screen(self):
         self.clear_screen()
@@ -214,18 +270,35 @@ class App:
             username = tree.item(item, "values")[0]
             reset_form.show_form(self.user, username)
 
-        users = self.user_manager.get_users()
+        users_list = self.user_manager.get_users()
+        users = []
+        for user in users_list:
+            if (
+                self.user.role == User.Role.SUPER_ADMIN.value
+                and user.role != User.Role.SUPER_ADMIN.value
+            ):
+                users.append(user)
+            elif (
+                self.user.role == User.Role.SYSTEM_ADMIN.value
+                and user.role != User.Role.SUPER_ADMIN.value
+                and user.role != User.Role.SYSTEM_ADMIN.value
+            ):
+                users.append(user)
+
         for user in users:
-            if user.role != User.Role.SUPER_ADMIN.value:
-                username = user.username
-                role = user.role
-                reset = user.reset_password
-                tree.insert("", "end", values=(username, role, reset))
+            username = user.username
+            role = user.role
+            reset = user.reset_password
+            tree.insert("", "end", values=(username, role, reset))
         tree.heading("Username", text="Username")
         tree.heading("Role", text="Role")
         tree.heading("Reset", text="Reset")
         tree.pack(padx=10, pady=10)
         tree.bind("<Double-1>", on_username_click)
+
+        # home button
+        self.home_button = tk.Button(self.root, text="🏠", command=self.correct_menu())
+        self.home_button.pack(pady=5)
 
     #
     # generic screens
@@ -544,12 +617,119 @@ class App:
                 )
                 self.back_button.pack(pady=5)
 
+            elif option == "Search members":
+
+                def handle_search():
+                    search_results = self.member_manager.search_members(
+                        search_field.get()
+                    )
+                    self.clear_screen()
+                    tree = ttk.Treeview(
+                        self.root,
+                        columns=(
+                            "Membership ID",
+                            "First Name",
+                            "Last Name",
+                            "Email",
+                            "Phone Number",
+                        ),
+                        show="headings",
+                    )
+                    tree.heading("Membership ID", text="Membership ID")
+                    tree.heading("First Name", text="First Name")
+                    tree.heading("Last Name", text="Last Name")
+                    tree.heading("Email", text="Email")
+                    tree.heading("Phone Number", text="Phone Number")
+                    tree.pack(padx=10, pady=10)
+
+                    for member in search_results:
+                        tree.insert(
+                            "",
+                            "end",
+                            values=(
+                                member.membership_id,
+                                member.first_name,
+                                member.last_name,
+                                member.email,
+                                member.phone_number,
+                            ),
+                        )
+
+                    # back button
+                    self.back_button = tk.Button(
+                        self.root, text="Back", command=self.view_members
+                    )
+                    self.back_button.pack(pady=5)
+
+                self.clear_screen()
+                search_field = tk.Entry(self.root, width=100)
+                search_field.pack(pady=10)
+
+                submit_button = tk.Button(
+                    self.root, text="Search", command=handle_search
+                )
+                submit_button.pack(pady=10)
+
+                # home button
+                self.home_button = tk.Button(
+                    self.root, text="🏠", command=self.correct_menu()
+                )
+                self.home_button.pack(pady=5)
+
         menu_options = [
             "List members",
             "Create member",
             "Update member",
             "Delete member",
+            "Search members",
         ]
+        for i, option in enumerate(menu_options):
+            button = tk.Button(
+                self.root,
+                text=option,
+                width=50,
+                command=lambda option=option: handle_option(option),
+            )
+            button.pack(pady=5)
+
+        self.home_button = tk.Button(self.root, text="🏠", command=self.correct_menu())
+        self.home_button.pack(pady=5)
+
+    def view_backups(self):
+        self.clear_screen()
+        title_label = tk.Label(
+            self.root, text="Backup options: ", font=("Arial", 20, "bold")
+        )
+        title_label.pack(pady=10)
+
+        self.backup_manager = Backups(App.config)
+
+        def handle_option(option):
+            if option == "Create backup":
+                self.backup_manager.create()
+                messagebox.showinfo("Backup Created", "Backup created successfully")
+                self.view_backups()
+            elif option == "Restore backup":
+                self.clear_screen()
+                backups = self.backup_manager.list()
+                for i, backup in enumerate(backups):
+                    button = tk.Button(
+                        self.root,
+                        text=backup,
+                        width=50,
+                        command=lambda backup=backup: self.backup_manager.restore(
+                            backup
+                        ),
+                    )
+                    button.pack(pady=5)
+
+                # back button
+                self.back_button = tk.Button(
+                    self.root, text="Back", command=self.view_backups
+                )
+                self.back_button.pack(pady=5)
+
+        menu_options = ["Create backup", "Restore backup"]
         for i, option in enumerate(menu_options):
             button = tk.Button(
                 self.root,
