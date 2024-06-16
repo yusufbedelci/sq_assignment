@@ -45,6 +45,11 @@ class Backups:
             if not os.path.exists("data.sql"):
                 raise FileNotFoundError("data.sql not found in the zip file")
 
+            # Disable foreign key checks to avoid conflicts
+            cursor = self.config.con.cursor()
+            cursor.execute("PRAGMA foreign_keys = OFF;")
+            cursor.close()
+
             # Get the list of all tables
             cursor = self.config.con.cursor()
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
@@ -70,6 +75,11 @@ class Backups:
             print(f"Database restored successfully from {zip_file_name}")
         except Exception as e:
             print(f"Error restoring backup: {e}")
+        finally:
+            # Re-enable foreign key checks
+            cursor = self.config.con.cursor()
+            cursor.execute("PRAGMA foreign_keys = ON;")
+            cursor.close()
 
     def list(self):
         return [backup for backup in os.listdir("backups") if backup.endswith(".zip")]
