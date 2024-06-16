@@ -4,15 +4,17 @@ from forms.Form import BaseForm
 from config import Config
 from managers.user_manager import UserManager
 import tkinter as tk
+from utils import validate_password
+
 
 class UserResetForm(BaseForm):
     config: Config = None
 
-    def __init__(self, root, config):
+    def __init__(self, root, config, login_callback):
         super().__init__(root)
         UserResetForm.config = config
-
         self.user_manager = UserManager(config)
+        self.login_callback = login_callback
 
     def show_form(self, current_user:User, reseted_username:str):
         self.clear_screen()
@@ -34,18 +36,17 @@ class UserResetForm(BaseForm):
         self.password_entry = tk.Entry(self.root, show="*", width=100)
         self.password_entry.pack(pady=5)
 
-        # self.repeat_password_label= tk.Label(self.root, text="Repeat new password",font=("Arial", 12))
-        # self.repeat_password_label.pack(pady=5)
-
-        # self.repeat_password_entry = tk.Entry(self.root, show="*", width=100)
-        # self.repeat_password_entry.pack(pady=5)
-
         self.submit_button = tk.Button(self.root, text="Reset Password", command=self.submit)
         self.submit_button.pack(pady=20)
     
     def submit(self):
         reseted_user = self.user_manager.get_user(self.current_username_entry.get())
-        self.user_manager.reset_password(reseted_user, self.password_entry.get())
-        messagebox.showinfo("Information", "User temp password has been set.")
-    
-        
+        password = self.password_entry.get()
+
+        if validate_password(password):
+            self.user_manager.reset_password(reseted_user, )
+            messagebox.showinfo("Information", "User temp password has been set.")
+            self.user_manager.reset_password_status(reseted_user)
+            self.login_callback()
+        else:
+            messagebox.showinfo("Information", "Please try Again")  

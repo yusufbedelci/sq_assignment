@@ -72,16 +72,17 @@ class App:
             widget.destroy()
 
     def login(self):
-        # Uncomment when you are done!
         username = self.username_entry.get()
         password = self.password_entry.get()
-        # username = "super_admin"
-        # password = "Admin_123?"
-
         user = self.user_manager.login(username, password)
         if user:
             self.user = user
-            self.create_main_screen()
+            if user.reset_password == 1:
+                reset_form = UserResetForm(self.root, App.config,self.create_login_screen)
+                reset_form.show_form(self.user, self.user.username)
+                    
+            else:
+                self.create_main_screen()
         else:
             messagebox.showerror("Login Failed", "Invalid username or password")
 
@@ -129,6 +130,9 @@ class App:
                 self.view_profiles()
             elif option == "Reset password":
                 self.view_password_reset_screen()
+            elif option == "Reset my password":
+                reset_form = UserResetForm(self.root, App.config, self.create_login_screen)
+                reset_form.show_form(self.user,self.user.username)
                 
                             
 
@@ -146,6 +150,7 @@ class App:
             "Consultants",
             "Members",
             "Reset password",
+            "Reset my password",
             "Profiles",
         ]
 
@@ -174,7 +179,7 @@ class App:
     
     def view_password_reset_screen(self):
         self.clear_screen()
-        reset_form = UserResetForm(self.root, App.config)
+        reset_form = UserResetForm(self.root, App.config, self.create_login_screen)
         tree = ttk.Treeview(self.root, columns=("Username", "Role", "Reset"), show="headings")
         def on_username_click(event):
             item = tree.selection()[0]
