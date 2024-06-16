@@ -85,7 +85,7 @@ class DeleteForm(BaseForm):
 
     def show_form(self):
         self.clear_screen()
-        title_label = tk.Label(self.root, text="Delete new user", font=("Arial", 16, "bold"))
+        title_label = tk.Label(self.root, text="Delete user", font=("Arial", 16, "bold"))
         title_label.pack()
         description_label = tk.Label(self.root, text="Select an user to delete: ", font=("Arial", 10))
         description_label.pack()

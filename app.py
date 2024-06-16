@@ -238,7 +238,6 @@ class App:
         menu_options = [
             "Create sysadmin",
             "Delete sysadmin",
-            "Search syadmin",
             "Update sysadmin",
             "List sysadmins",
         ]
