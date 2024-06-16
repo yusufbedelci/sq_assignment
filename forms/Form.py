@@ -48,23 +48,17 @@ class CreateForm(BaseForm):
 
         self.role_label = tk.Label(self.root, text="Role:", width=100, font=("Arial", 12))
         self.role_label.pack(pady=10)
-
-        options = [
-            User.Role.SYSTEM_ADMIN.value,
-            User.Role.CONSULTANT.value,
-        ]
-
+        
         self.role_label = tk.Label(self.root, text=role, font=("Arial", 12))
         self.role_label.pack()
 
-        self.submit_button = tk.Button(self.root, text="Create user", command=self.submit)
+        self.submit_button = tk.Button(self.root, text="Create user", command=lambda:self.submit(role))
         self.submit_button.pack(pady=20)
         
 
-    def submit(self):
+    def submit(self, role):
         username = self.username_entry.get()
         password = self.password_entry.get()
-        role = self.roles_option.get(role)
     
         if validate_username(username) and validate_password(password):
             user = self.user_manager.create_user(username, password,role)
