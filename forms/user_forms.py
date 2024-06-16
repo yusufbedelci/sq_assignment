@@ -151,14 +151,6 @@ class UpdateUserForm(BaseForm):
         self.current_username_entry.config(state="readonly")
         self.current_username_entry.pack(pady=5)
 
-        # password
-        self.password_label = tk.Label(
-            self.root, text="Please enter the new password", font=("Arial", 12)
-        )
-        self.password_label.pack(pady=5)
-        self.password_entry = tk.Entry(self.root, show="*", width=100)
-        self.password_entry.pack(pady=5)
-
         # first name
         self.first_name_label = tk.Label(
             self.root, text="Please enter the first name", font=("Arial", 12)
@@ -189,7 +181,6 @@ class UpdateUserForm(BaseForm):
 
     def submit(self):
         current_username = self.current_username_entry.get()
-        new_password = self.password_entry.get()
         new_first_name = self.first_name_entry.get()
         new_last_name = self.last_name_entry.get()
 
@@ -197,9 +188,6 @@ class UpdateUserForm(BaseForm):
             user_to_update = self.user_manager.get_user(current_username)
             if user_to_update is not None:
                 errors = []
-                if not validate_password(new_password):
-                    errors.append("Password is not valid.")
-
                 if not validate_name(new_first_name):
                     errors.append("First name has to be between 2 and 20 characters.")
 
@@ -208,7 +196,7 @@ class UpdateUserForm(BaseForm):
 
                 if len(errors) == 0:
                     self.user_manager.update_user(
-                        user_to_update, current_username, new_password, self.role
+                        user_to_update, current_username, self.role
                     )
                     updated_user = self.user_manager.get_user(current_username)
                     if updated_user is not None:
@@ -286,3 +274,4 @@ class DeleteUserForm(BaseForm):
         deleted_user = self.user_manager.get_user(form_user)
         self.user_manager.delete_user(deleted_user)
         messagebox.showinfo("Information", "User has been deleted.")
+        self.view_users_callback()

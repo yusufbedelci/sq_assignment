@@ -2,7 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from config import Config
 from tkinter import messagebox
-from forms.reset_form import UserResetForm
+from forms.reset_form import OtherResetForm, UserResetForm
 from managers.address_manager import AddressManager
 from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
@@ -76,9 +76,11 @@ class App:
         if user:
             self.user = user
             if user.reset_password == 1:
-                reset_form = UserResetForm(self.root, App.config,self.create_login_screen)
+                reset_form = UserResetForm(
+                    self.root, App.config, self.create_login_screen
+                )
                 reset_form.show_form(self.user, self.user.username)
-                    
+
             else:
                 self.create_main_screen()
         else:
@@ -121,8 +123,10 @@ class App:
             elif option == "Reset password":
                 self.view_password_reset_screen()
             elif option == "Reset my password":
-                reset_form = UserResetForm(self.root, App.config, self.create_login_screen)
-                reset_form.show_form(self.user,self.user.username)
+                reset_form = UserResetForm(
+                    self.root, App.config, self.create_login_screen
+                )
+                reset_form.show_form(self.user, self.user.username)
 
         label = tk.Label(self.root, text="Super Admin Panel")
         label.pack()
@@ -188,43 +192,31 @@ class App:
 
         label = tk.Label(self.root, text="Consultant Panel")
         label.pack()
-    
+
     def view_password_reset_screen(self):
         self.clear_screen()
-        reset_form = UserResetForm(self.root, App.config, self.create_login_screen)
-        tree = ttk.Treeview(self.root, columns=("Username", "Role", "Reset"), show="headings")
+        reset_form = OtherResetForm(self.root, App.config, self.create_login_screen)
+        tree = ttk.Treeview(
+            self.root, columns=("Username", "Role", "Reset"), show="headings"
+        )
+
         def on_username_click(event):
             item = tree.selection()[0]
-            username = tree.item(item, "values")[0]  
-            reset_form.show_form(self.user,username)
-        
+            username = tree.item(item, "values")[0]
+            reset_form.show_form(self.user, username)
+
         users = self.user_manager.get_users()
         for user in users:
             if user.role != User.Role.SUPER_ADMIN.value:
                 username = user.username
                 role = user.role
                 reset = user.reset_password
-                tree.insert("", "end", values=(username,role, reset))
+                tree.insert("", "end", values=(username, role, reset))
         tree.heading("Username", text="Username")
         tree.heading("Role", text="Role")
         tree.heading("Reset", text="Reset")
         tree.pack(padx=10, pady=10)
         tree.bind("<Double-1>", on_username_click)
-
-        # print list of menu options
-        menu_options = [
-            "Members",
-            "Reset password",
-        ]
-
-        for i, option in enumerate(menu_options):
-            button = tk.Button(
-                self.root,
-                text=option,
-                width=50,
-                command=lambda option=option: handle_sysadmin_options(option),
-            )
-            button.pack(pady=5)
 
     #
     # generic screens
