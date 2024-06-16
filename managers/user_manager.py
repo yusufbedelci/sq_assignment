@@ -153,8 +153,8 @@ class UserManager(BaseManager):
         
 
     def reset_password(self,user:User, new_password:str):
-        encrypted_new_password = rsa_encrypt(new_password, self.config.public_key)
         hashed_password = self.hash_and_salt(new_password)
+        encrypted_new_password = rsa_encrypt(hashed_password, self.config.public_key)
         SQL_UPDATE_USER = """
             UPDATE users SET password = ?, reset_password = ? WHERE id = ?;
         """
@@ -163,11 +163,30 @@ class UserManager(BaseManager):
             cursor = self.config.con.cursor()
             cursor.execute(
                 SQL_UPDATE_USER,
-                (hashed_password,True, user.id),
+                (encrypted_new_password,True, user.id),
             )
             self.config.con.commit()
         finally:
             cursor.close()
+
+    def reset_password_status(self,user:User):
+        SQL_UPDATE_USER = """
+            UPDATE users SET reset_password = ? WHERE id = ?;
+        """
+
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(
+                SQL_UPDATE_USER,
+                (False, user.id),
+            )
+            self.config.con.commit()
+            return True
+        except Exception as e:
+            print(f"Error resetting status: {str(e)}")
+        finally:
+            cursor.close()
+        
 
 
 
