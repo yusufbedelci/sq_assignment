@@ -17,9 +17,10 @@ from entities.user import User
 from entities.member import Member
 from app_logger import AppLogger
 
+
 class App:
     config: Config
-    logger = AppLogger('my_app.log')
+    logger = AppLogger("my_app.log")
 
     def __init__(self, root, config):
         self.root = root
@@ -86,14 +87,24 @@ class App:
                 reset_form.show_form(self.user, self.user.username)
 
             else:
-                App.logger.log_activity(self.user.username,"Login", " ", False)
+                App.logger.log_activity(self.user.username, "Login", " ", False)
 
                 self.create_main_screen()
         else:
-            self.login_attempts+=1
-            App.logger.log_activity(f"{username}","Unsuccesfull Login", f"username: {username} is used for a login attempt with a wrong password", False)
+            self.login_attempts += 1
+            App.logger.log_activity(
+                f"{username}",
+                "Unsuccesfull Login",
+                f"username: {username} is used for a login attempt with a wrong password",
+                False,
+            )
             if self.login_attempts >= 3:
-                App.logger.log_activity(f"{username}","Unsuccesfull Login", f"Multiple usernames and passwords are tried in a row", True)
+                App.logger.log_activity(
+                    f"{username}",
+                    "Unsuccesfull Login",
+                    f"Multiple usernames and passwords are tried in a row",
+                    True,
+                )
 
             messagebox.showerror("Login Failed", "Invalid username or password")
 
@@ -260,7 +271,7 @@ class App:
 
     def view_password_reset_screen(self):
         self.clear_screen()
-        reset_form = OtherResetForm(self.root, App.config, self.create_login_screen)
+        reset_form = OtherResetForm(self.root, App.config, self.correct_menu())
         tree = ttk.Treeview(
             self.root, columns=("Username", "Role", "Reset"), show="headings"
         )
