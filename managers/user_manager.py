@@ -110,8 +110,10 @@ class UserManager(BaseManager):
     def create_user(self, username: str, password: str, role: str):
         if self.check_if_user_exist(username):
             return None
+        
+        hashed_password = self.hash_and_salt(password)
         encrypted_username = rsa_encrypt(username, self.config.public_key)
-        encrypted_password = rsa_encrypt(password, self.config.public_key)
+        encrypted_password = rsa_encrypt(hashed_password, self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
 
         SQL_CREATE_USER = """
@@ -132,7 +134,7 @@ class UserManager(BaseManager):
 
     def update_user(self, user: User, username: str, password: str, role: str):
         encrypted_username = rsa_encrypt(username, self.config.public_key)
-        encrypted_password = rsa_encrypt(password, self.config.public_key)
+        encrypted_password = rsa_encrypt(self.hash_and_salt(password), self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
 
         SQL_UPDATE_USER = """
@@ -149,6 +151,24 @@ class UserManager(BaseManager):
         finally:
             cursor.close()
         
+
+    def reset_password(self,user:User, new_password:str):
+        encrypted_new_password = rsa_encrypt(new_password, self.config.public_key)
+        hashed_password = self.hash_and_salt(new_password)
+        SQL_UPDATE_USER = """
+            UPDATE users SET password = ?, reset_password = ? WHERE id = ?;
+        """
+
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(
+                SQL_UPDATE_USER,
+                (hashed_password,True, user.id),
+            )
+            self.config.con.commit()
+        finally:
+            cursor.close()
+
 
 
     def delete_user(self, user: User):
