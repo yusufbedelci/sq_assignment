@@ -113,7 +113,6 @@ class UpdateForm(BaseForm):
     
 
     def show_form(self, username):
-        self.clear_screen()
         
         title_label = tk.Label(self.root, text="Update user", font=("Arial", 16, "bold"))
         title_label.pack(pady=10)
