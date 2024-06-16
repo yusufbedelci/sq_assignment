@@ -140,6 +140,7 @@ class App:
             "System Admin",
             "Consultants",
             "Members",
+            "Reset password",
             "Profiles",
         ]
 
@@ -182,7 +183,7 @@ class App:
             if option == "Create sysadmin":
                 # self.view_sysadmin()
                 form = CreateForm(self.root, App.config)
-                form.show_form()
+                form.show_form(User.Role.SYSTEM_ADMIN.value)
 
             elif option == "Delete sysadmin":
                 self.history.append(self.view_sysadmin)
@@ -206,9 +207,9 @@ class App:
 
             elif option == "Update sysadmin":
                 self.clear_screen()
+                update_form = UpdateForm(self.root, App.config)
                 def on_username_click(event):
                     item = tree.selection()[0]
-                    update_form = UpdateForm(self.root, App.config)
                     username = tree.item(item, "values")[0]  
                     update_form.show_form(username)
                     
@@ -227,9 +228,10 @@ class App:
 
                 users = self.user_manager.get_users()
                 for user in users:
-                    username = user.username
-                    role = user.role
-                    tree.insert("", "end", values=(username,role))
+                    if user.role != User.Role.SUPER_ADMIN.value:
+                        username = user.username
+                        role = user.role
+                        tree.insert("", "end", values=(username,role))
 
             if self.history:
                 back_button = tk.Button(self.root, text="Back", command=self.go_back)
