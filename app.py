@@ -6,8 +6,14 @@ from managers.address_manager import AddressManager
 from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
 from managers.user_manager import UserManager
-from forms.Form import CreateForm, DeleteForm, UpdateForm
+
+# from forms.Form import CreateForm, DeleteForm, UpdateForm
+from forms.user_forms import *
+from forms.member_forms import *
 from entities.user import User
+from entities.member import Member
+
+
 class App:
     config: Config = None
 
@@ -24,7 +30,6 @@ class App:
 
         self.root.title("Login")
         self.user = None
-        self.history = []
         self.create_login_screen()
 
     def run(self):
@@ -57,14 +62,7 @@ class App:
 
     def logout(self):
         self.user = None
-        self.history=[]
         self.create_login_screen()
-    
-    def go_back(self):
-        if self.history:
-            last_screen = self.history.pop()  
-            self.clear_screen()
-            last_screen()  
 
     def clear_screen(self):
         for widget in self.root.winfo_children():
@@ -99,13 +97,10 @@ class App:
 
         # Display role-based content
         if self.user.role == "super_admin":
-            self.history.append(self.create_main_screen)
             self.create_super_admin_screen()
         elif self.user.role == "system_admin":
-            self.history.append(self.create_main_screen)
             self.create_system_admin_screen()
         elif self.user.role == "consultant":
-            self.history.append(self.create_main_screen)
             self.create_consultant_screen()
 
     #
@@ -113,24 +108,14 @@ class App:
     #
     def create_super_admin_screen(self):
         self.clear_screen()
+
         def handle_super_options(option):
             if option == "System Admin":
-                self.history.append(self.create_super_admin_screen)
                 self.view_sysadmin()
             elif option == "Consultant":
-                self.history.append(self.create_super_admin_screen)
                 self.view_consultant()
             elif option == "Members":
-                self.history.append(self.create_super_admin_screen)
                 self.view_members()
-            elif option == "Profiles":
-                self.history.append(self.create_super_admin_screen)
-                self.view_profiles()
-
-
-            if self.history:
-                back_button = tk.Button(self.root, text="Back", command=self.go_back)
-                back_button.pack(pady=5)
 
         label = tk.Label(self.root, text="Super Admin Panel")
         label.pack()
@@ -138,9 +123,9 @@ class App:
         # print list of menu options
         menu_options = [
             "System Admin",
-            "Consultants",
+            "Consultant",
             "Members",
-            "Profiles",
+            "Reset password",
         ]
 
         for i, option in enumerate(menu_options):
@@ -156,70 +141,144 @@ class App:
     # System admin screens
     #
     def create_system_admin_screen(self):
+        self.clear_screen()
+
+        def handle_sysadmin_options(option):
+            if option == "Consultant":
+                self.view_consultant()
+            elif option == "Members":
+                self.view_members()
+
         label = tk.Label(self.root, text="System Admin Panel")
-        label.pack()    
+        label.pack()
+
+        # print list of menu options
+        menu_options = [
+            "Consultant",
+            "Members",
+            "Reset password",
+        ]
+
+        for i, option in enumerate(menu_options):
+            button = tk.Button(
+                self.root,
+                text=option,
+                width=50,
+                command=lambda option=option: handle_sysadmin_options(option),
+            )
+            button.pack(pady=5)
 
     #
     # Consultant screens
     #
     def create_consultant_screen(self):
+        self.clear_screen()
+
+        def handle_sysadmin_options(option):
+            if option == "Members":
+                self.view_members()
+
         label = tk.Label(self.root, text="Consultant Panel")
         label.pack()
 
-    def view_members(self):
-        self.clear_screen()
-        users = self.member_manager.get_members()
-        for user in users:
-            label = tk.Label(self.root, text=f"{user}")
-            label.pack()
+        # print list of menu options
+        menu_options = [
+            "Members",
+            "Reset password",
+        ]
 
+        for i, option in enumerate(menu_options):
+            button = tk.Button(
+                self.root,
+                text=option,
+                width=50,
+                command=lambda option=option: handle_sysadmin_options(option),
+            )
+            button.pack(pady=5)
+
+    #
+    # generic screens
+    #
     def view_sysadmin(self):
         self.clear_screen()
-        title_label = tk.Label(self.root, text="Menu Options: ", font=("Arial", 20, "bold"))
+        title_label = tk.Label(
+            self.root, text="Menu Options: ", font=("Arial", 20, "bold")
+        )
         title_label.pack(pady=10)
 
         def handle_option(option):
             if option == "Create sysadmin":
                 # self.view_sysadmin()
-                form = CreateForm(self.root, App.config)
+                form = CreateUserForm(
+                    self.root,
+                    App.config,
+                    User.Role.SYSTEM_ADMIN.value,
+                    self.view_sysadmin,
+                )
                 form.show_form()
 
             elif option == "Delete sysadmin":
-                self.history.append(self.view_sysadmin)
-                delete_form = DeleteForm(self.root, App.config)
+                delete_form = DeleteUserForm(
+                    self.root,
+                    App.config,
+                    User.Role.SYSTEM_ADMIN.value,
+                    self.view_sysadmin,
+                )
                 delete_form.show_form()
 
             elif option == "List sysadmins":
-                    self.clear_screen()
-                    tree = ttk.Treeview(self.root, columns=("Username", "Role"), show="headings")
-                    tree.heading("Username", text="Username")
-                    tree.heading("Role", text="Role")
-                    tree.pack(padx=10, pady=10)
+                self.clear_screen()
+                tree = ttk.Treeview(
+                    self.root, columns=("Username", "Role"), show="headings"
+                )
+                tree.heading("Username", text="Username")
+                tree.heading("Role", text="Role")
+                tree.pack(padx=10, pady=10)
 
-                    users = self.user_manager.get_users()
-                    for user in users:
-                        if user.role == User.Role.SYSTEM_ADMIN.value:
-                            username = user.username
-                            role = user.role
-                            tree.insert("", "end", values=(username,role))
-                    tree.bind("<Double-1>")
+                users = self.user_manager.get_users()
+                for user in users:
+                    if user.role == User.Role.SYSTEM_ADMIN.value:
+                        username = user.username
+                        role = user.role
+                        tree.insert("", "end", values=(username, role))
+                tree.bind("<Double-1>")
+
+                # back button
+                self.back_button = tk.Button(
+                    self.root, text="Back", command=self.view_sysadmin
+                )
+                self.back_button.pack(pady=5)
 
             elif option == "Update sysadmin":
                 self.clear_screen()
+                update_form = UpdateUserForm(
+                    self.root,
+                    App.config,
+                    User.Role.SYSTEM_ADMIN.value,
+                    self.view_sysadmin,
+                )
+
                 def on_username_click(event):
                     item = tree.selection()[0]
-                    update_form = UpdateForm(self.root, App.config)
-                    username = tree.item(item, "values")[0]  
+                    username = tree.item(item, "values")[0]
                     update_form.show_form(username)
-                    
-                label = tk.Label(self.root, text="Create new user", font=("Arial", 16, "bold"))
+
+                label = tk.Label(
+                    self.root, text="Create new user", font=("Arial", 16, "bold")
+                )
                 label = tk.Label(self.root, text="Update User")
                 label.pack()
 
-                description_label = tk.Label(self.root, text="Double click on an user to update: ", font=("Arial", 10))
+                description_label = tk.Label(
+                    self.root,
+                    text="Double click on an user to update: ",
+                    font=("Arial", 10),
+                )
                 description_label.pack()
 
-                tree = ttk.Treeview(self.root, columns=("Username", "Role"), show="headings")
+                tree = ttk.Treeview(
+                    self.root, columns=("Username", "Role"), show="headings"
+                )
                 tree.heading("Username", text="Username")
                 tree.heading("Role", text="Role")
                 tree.pack(padx=10, pady=10)
@@ -227,19 +286,22 @@ class App:
 
                 users = self.user_manager.get_users()
                 for user in users:
-                    username = user.username
-                    role = user.role
-                    tree.insert("", "end", values=(username,role))
+                    if user.role == User.Role.SYSTEM_ADMIN.value:
+                        username = user.username
+                        role = user.role
+                        tree.insert("", "end", values=(username, role))
 
-            if self.history:
-                back_button = tk.Button(self.root, text="Back", command=self.go_back)
-                back_button.pack(pady=5)
+                # back button
+                self.back_button = tk.Button(
+                    self.root, text="Back", command=self.view_sysadmin
+                )
+                self.back_button.pack(pady=5)
 
         menu_options = [
-            "Create sysadmin",
-            "Delete sysadmin",
-            "Update sysadmin",
             "List sysadmins",
+            "Create sysadmin",
+            "Update sysadmin",
+            "Delete sysadmin",
         ]
         for i, option in enumerate(menu_options):
             button = tk.Button(
@@ -249,3 +311,233 @@ class App:
                 command=lambda option=option: handle_option(option),
             )
             button.pack(pady=5)
+
+        self.home_button = tk.Button(self.root, text="🏠", command=self.correct_menu())
+        self.home_button.pack(pady=5)
+
+    def view_consultant(self):
+        self.clear_screen()
+        title_label = tk.Label(
+            self.root, text="Menu Options: ", font=("Arial", 20, "bold")
+        )
+        title_label.pack(pady=10)
+
+        def handle_option(option):
+            if option == "Create consultant":
+                form = CreateUserForm(
+                    self.root,
+                    App.config,
+                    User.Role.CONSULTANT.value,
+                    self.view_consultant,
+                )
+                form.show_form()
+
+            elif option == "Delete consultant":
+                delete_form = DeleteUserForm(
+                    self.root,
+                    App.config,
+                    User.Role.CONSULTANT.value,
+                    self.view_consultant,
+                )
+                delete_form.show_form()
+
+            elif option == "List consultants":
+                self.clear_screen()
+                tree = ttk.Treeview(
+                    self.root, columns=("Username", "Role"), show="headings"
+                )
+                tree.heading("Username", text="Username")
+                tree.heading("Role", text="Role")
+                tree.pack(padx=10, pady=10)
+
+                users = self.user_manager.get_users()
+                for user in users:
+                    if user.role == User.Role.CONSULTANT.value:
+                        username = user.username
+                        role = user.role
+                        tree.insert("", "end", values=(username, role))
+                tree.bind("<Double-1>")
+
+                # back button
+                self.back_button = tk.Button(
+                    self.root, text="Back", command=self.view_consultant
+                )
+                self.back_button.pack(pady=5)
+
+            elif option == "Update consultant":
+                self.clear_screen()
+                update_form = UpdateUserForm(
+                    self.root,
+                    App.config,
+                    User.Role.CONSULTANT.value,
+                    self.view_consultant,
+                )
+
+                def on_username_click(event):
+                    item = tree.selection()[0]
+                    username = tree.item(item, "values")[0]
+                    update_form.show_form(username)
+
+                label = tk.Label(
+                    self.root, text="Update User", font=("Arial", 16, "bold")
+                )
+                label.pack()
+
+                description_label = tk.Label(
+                    self.root,
+                    text="Double click on a user to update: ",
+                    font=("Arial", 10),
+                )
+                description_label.pack()
+
+                tree = ttk.Treeview(
+                    self.root, columns=("Username", "Role"), show="headings"
+                )
+                tree.heading("Username", text="Username")
+                tree.heading("Role", text="Role")
+                tree.pack(padx=10, pady=10)
+                tree.bind("<Double-1>", on_username_click)
+
+                users = self.user_manager.get_users()
+                for user in users:
+                    if user.role == User.Role.CONSULTANT.value:
+                        username = user.username
+                        role = user.role
+                        tree.insert("", "end", values=(username, role))
+
+                # back button
+                self.back_button = tk.Button(
+                    self.root, text="Back", command=self.view_consultant
+                )
+                self.back_button.pack(pady=5)
+
+        menu_options = [
+            "List consultants",
+            "Create consultant",
+            "Update consultant",
+            "Delete consultant",
+        ]
+        for i, option in enumerate(menu_options):
+            button = tk.Button(
+                self.root,
+                text=option,
+                width=50,
+                command=lambda option=option: handle_option(option),
+            )
+            button.pack(pady=5)
+
+        self.home_button = tk.Button(self.root, text="🏠", command=self.correct_menu())
+        self.home_button.pack(pady=5)
+
+    def view_members(self):
+        self.clear_screen()
+
+        title_label = tk.Label(
+            self.root, text="Menu Options: ", font=("Arial", 20, "bold")
+        )
+        title_label.pack(pady=10)
+
+        def handle_option(option):
+            if option == "Create member":
+                form = CreateMemberForm(self.root, App.config, self.view_members)
+                form.show_form()
+
+            elif option == "Delete member":
+                delete_form = DeleteMemberForm(self.root, App.config, self.view_members)
+                delete_form.show_form()
+
+            elif option == "List members":
+                self.clear_screen()
+                tree = ttk.Treeview(
+                    self.root, columns=("First Name", "Last Name"), show="headings"
+                )
+                tree.heading("First Name", text="First Name")
+                tree.heading("Last Name", text="Last Name")
+                tree.pack(padx=10, pady=10)
+
+                members = self.member_manager.get_members()
+                for member in members:
+                    first_name = member.first_name
+                    last_name = member.last_name
+                    tree.insert("", "end", values=(first_name, last_name))
+                tree.bind("<Double-1>")
+
+                # back button
+                self.back_button = tk.Button(
+                    self.root, text="Back", command=self.view_members
+                )
+                self.back_button.pack(pady=5)
+
+            elif option == "Update member":
+                self.clear_screen()
+                update_form = UpdateMemberForm(self.root, App.config, self.view_members)
+
+                def on_member_click(event):
+                    item = tree.selection()[0]
+                    id = tree.item(item, "values")[0]
+                    update_form.show_form(int(id))
+
+                label = tk.Label(
+                    self.root, text="Update Member", font=("Arial", 16, "bold")
+                )
+                label.pack()
+
+                description_label = tk.Label(
+                    self.root,
+                    text="Double click on a member to update: ",
+                    font=("Arial", 10),
+                )
+                description_label.pack()
+
+                tree = ttk.Treeview(
+                    self.root,
+                    columns=("ID", "First Name", "Last Name"),
+                    show="headings",
+                )
+                tree.heading("ID", text="ID")
+                tree.heading("First Name", text="First Name")
+                tree.heading("Last Name", text="Last Name")
+                tree.pack(padx=10, pady=10)
+                tree.bind("<Double-1>", on_member_click)
+
+                members = self.member_manager.get_members()
+                for member in members:
+                    id = member.id
+                    first_name = member.first_name
+                    last_name = member.last_name
+                    tree.insert("", "end", values=(id, first_name, last_name))
+
+                # back button
+                self.back_button = tk.Button(
+                    self.root, text="Back", command=self.view_members
+                )
+                self.back_button.pack(pady=5)
+
+        menu_options = [
+            "List members",
+            "Create member",
+            "Update member",
+            "Delete member",
+        ]
+        for i, option in enumerate(menu_options):
+            button = tk.Button(
+                self.root,
+                text=option,
+                width=50,
+                command=lambda option=option: handle_option(option),
+            )
+            button.pack(pady=5)
+
+        self.home_button = tk.Button(self.root, text="🏠", command=self.correct_menu())
+        self.home_button.pack(pady=5)
+
+    #
+    # Helper functions
+    #
+    def correct_menu(self):
+        if self.user.role == User.Role.SUPER_ADMIN.value:
+            return self.create_super_admin_screen
+        elif self.user.role == User.Role.SYSTEM_ADMIN.value:
+            return self.create_system_admin_screen
+        elif self.user.role == User.Role.CONSULTANT.value:
+            return self.create_consultant_screen
