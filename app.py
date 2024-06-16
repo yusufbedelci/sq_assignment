@@ -216,6 +216,9 @@ class App:
                 label = tk.Label(self.root, text="Update User")
                 label.pack()
 
+                description_label = tk.Label(self.root, text="Double click on an user to update: ", font=("Arial", 10))
+                description_label.pack()
+
                 tree = ttk.Treeview(self.root, columns=("Username", "Role"), show="headings")
                 tree.heading("Username", text="Username")
                 tree.heading("Role", text="Role")
