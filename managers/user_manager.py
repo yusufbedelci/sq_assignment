@@ -131,8 +131,6 @@ class UserManager(BaseManager):
         return self.get_user(username)
 
     def update_user(self, user: User, username: str, password: str, role: str):
-        if self.check_if_user_exist(username):
-            return None
         encrypted_username = rsa_encrypt(username, self.config.public_key)
         encrypted_password = rsa_encrypt(password, self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
@@ -150,6 +148,7 @@ class UserManager(BaseManager):
             self.config.con.commit()
         finally:
             cursor.close()
+        
 
 
     def delete_user(self, user: User):

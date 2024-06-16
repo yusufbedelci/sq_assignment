@@ -58,7 +58,7 @@ class CreateForm(BaseForm):
         self.roles_option = ttk.Combobox(self.root, values=options)
         self.roles_option.pack()
 
-        self.submit_button = tk.Button(self.root, text="Submit", command=self.submit)
+        self.submit_button = tk.Button(self.root, text="Create user", command=self.submit)
         self.submit_button.pack(pady=20)
         
 
@@ -85,7 +85,10 @@ class DeleteForm(BaseForm):
 
     def show_form(self):
         self.clear_screen()
-
+        title_label = tk.Label(self.root, text="Delete user", font=("Arial", 16, "bold"))
+        title_label.pack()
+        description_label = tk.Label(self.root, text="Select an user to delete: ", font=("Arial", 10))
+        description_label.pack()
         options = []
         for user in self.user_manager.get_users():
             options.append(user.username)
@@ -93,7 +96,7 @@ class DeleteForm(BaseForm):
         self.roles_option = ttk.Combobox(self.root, values=options)
         self.roles_option.pack()
 
-        self.submit_button = tk.Button(self.root, text="Submit", command=self.submit)
+        self.submit_button = tk.Button(self.root, text="Delete user", command=self.submit)
         self.submit_button.pack(pady=20)
         
     def submit(self):
@@ -112,7 +115,6 @@ class UpdateForm(BaseForm):
     
 
     def show_form(self, username):
-        self.clear_screen()
         
         title_label = tk.Label(self.root, text="Update user", font=("Arial", 16, "bold"))
         title_label.pack(pady=10)
@@ -156,7 +158,7 @@ class UpdateForm(BaseForm):
         self.roles_option = ttk.Combobox(self.root, values=options)
         self.roles_option.pack()
 
-        self.submit_button = tk.Button(self.root, text="Submit", command=self.submit)
+        self.submit_button = tk.Button(self.root, text="Update user", command=self.submit)
         self.submit_button.pack(pady=20)
 
 
