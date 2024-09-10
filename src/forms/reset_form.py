@@ -18,6 +18,7 @@ class UserResetForm(BaseForm):
 
     def show_form(self, current_user: User, reseted_username: str):
         self.clear_screen()
+
         title_label = tk.Label(
             self.root, text="Reset Password", font=("Arial", 16, "bold")
         )
@@ -26,19 +27,19 @@ class UserResetForm(BaseForm):
         self.current_username_label = tk.Label(
             self.root, text="Current Username", font=("Arial", 12)
         )
-        self.current_username_label.pack(pady=5)
+        self.current_username_label.pack(pady=5, padx=25)
         self.current_username_entry = tk.Entry(self.root, width=100)
         self.current_username_entry.insert(0, reseted_username)
         self.current_username_entry.config(state="readonly")
-        self.current_username_entry.pack(pady=5)
+        self.current_username_entry.pack(pady=5, padx=25)
 
         self.password_label = tk.Label(
             self.root, text="Enter new password", font=("Arial", 12)
         )
-        self.password_label.pack(pady=5)
+        self.password_label.pack(pady=5, padx=25)
 
         self.password_entry = tk.Entry(self.root, show="*", width=100)
-        self.password_entry.pack(pady=5)
+        self.password_entry.pack(pady=5, padx=25)
 
         self.submit_button = tk.Button(
             self.root, text="Reset Password", command=self.submit

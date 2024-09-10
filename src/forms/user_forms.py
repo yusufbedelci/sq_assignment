@@ -10,10 +10,12 @@ from validations import validate_username, validate_password, validate_name
 from forms.Form import BaseForm
 from app_logger import AppLogger
 
+
 class CreateUserForm(BaseForm):
     config: Config = None
     logger = AppLogger("app.log")
-    def __init__(self, root, config, role, view_users_callback):
+
+    def __init__(self, root, config, role, current_user_role, view_users_callback):
         super().__init__(root)
         CreateUserForm.config = config
         self.role = role
@@ -22,6 +24,14 @@ class CreateUserForm(BaseForm):
             if role == User.Role.SYSTEM_ADMIN.value
             else "Consultant"
         )
+        self.current_user_role = current_user_role
+        self.choosable_roles = []
+        if self.current_user_role == User.Role.SUPER_ADMIN.value:
+            self.choosable_roles.append(User.Role.SYSTEM_ADMIN.value)
+            self.choosable_roles.append(User.Role.CONSULTANT.value)
+        elif self.current_user_role == User.Role.SYSTEM_ADMIN.value:
+            self.choosable_roles.append(User.Role.CONSULTANT.value)
+
         self.user_manager = UserManager(config)
         self.profile_manager = ProfileManager(config)
         self.view_users_callback = view_users_callback
@@ -31,7 +41,7 @@ class CreateUserForm(BaseForm):
 
         # Create a title label
         title_label = tk.Label(
-            self.root, text=f"Create new {self.role_clean}", font=("Arial", 16, "bold")
+            self.root, text=f"Add new {self.role_clean}", font=("Arial", 16, "bold")
         )
         title_label.pack(pady=10)
 
@@ -39,33 +49,40 @@ class CreateUserForm(BaseForm):
         self.username_label = tk.Label(
             self.root, text="Please enter the new username", font=("Arial", 12)
         )
-        self.username_label.pack(pady=5)
+        self.username_label.pack(pady=5, padx=25)
         self.username_entry = tk.Entry(self.root, width=100)
-        self.username_entry.pack(pady=5)
+        self.username_entry.pack(pady=5, padx=25)
 
         # password
         self.password_label = tk.Label(
             self.root, text="Please enter the new password", font=("Arial", 12)
         )
-        self.password_label.pack(pady=5)
+        self.password_label.pack(pady=5, padx=25)
         self.password_entry = tk.Entry(self.root, show="*", width=100)
-        self.password_entry.pack(pady=5)
+        self.password_entry.pack(pady=5, padx=25)
 
         # first name
         self.first_name_label = tk.Label(
             self.root, text="Please enter the first name", font=("Arial", 12)
         )
-        self.first_name_label.pack(pady=5)
+        self.first_name_label.pack(pady=5, padx=25)
         self.first_name_entry = tk.Entry(self.root, width=100)
-        self.first_name_entry.pack(pady=5)
+        self.first_name_entry.pack(pady=5, padx=25)
 
         # last name
         self.last_name_label = tk.Label(
             self.root, text="Please enter the last name", font=("Arial", 12)
         )
-        self.last_name_label.pack(pady=5)
+        self.last_name_label.pack(pady=5, padx=25)
         self.last_name_entry = tk.Entry(self.root, width=100)
-        self.last_name_entry.pack(pady=5)
+        self.last_name_entry.pack(pady=5, padx=25)
+
+        # role
+        self.role_label = tk.Label(self.root, text="Role", font=("Arial", 12))
+        self.role_label.pack(pady=5, padx=25)
+        self.role_combobox = ttk.Combobox(self.root, values=self.choosable_roles)
+        self.role_combobox.set(self.choosable_roles[0])
+        self.role_combobox.pack(pady=5, padx=25)
 
         # submit button
         self.submit_button = tk.Button(self.root, text="Save", command=self.submit)
@@ -82,6 +99,7 @@ class CreateUserForm(BaseForm):
         password = self.password_entry.get()
         first_name = self.first_name_entry.get()
         last_name = self.last_name_entry.get()
+        self.role = self.role_combobox.get()
 
         errors = []
         if not validate_username(username):
@@ -96,13 +114,26 @@ class CreateUserForm(BaseForm):
         if not validate_name(last_name):
             errors.append("Last name has to be between 2 and 20 characters.")
 
+        if self.role not in self.choosable_roles:
+            errors.append("Role is not valid, incident will be logged.")
+
         if len(errors) == 0:
             user = self.user_manager.create_user(username, password, self.role)
             if self.role == User.Role.SYSTEM_ADMIN.value:
-                CreateUserForm.logger.log_activity(self.role,"New admin user is created",f"username: {username}", False)
-            
+                CreateUserForm.logger.log_activity(
+                    self.role,
+                    "New admin user is created",
+                    f"username: {username}",
+                    False,
+                )
+
             elif self.role == User.Role.CONSULTANT.value:
-                CreateUserForm.logger.log_activity(self.role,"New Consultant user is created",f"username: {username}", False)
+                CreateUserForm.logger.log_activity(
+                    self.role,
+                    "New Consultant user is created",
+                    f"username: {username}",
+                    False,
+                )
 
             if user is not None:
                 profile = self.profile_manager.create_profile(
@@ -121,7 +152,7 @@ class CreateUserForm(BaseForm):
 class UpdateUserForm(BaseForm):
     config: Config = None
 
-    def __init__(self, root, config, role, view_users_callback):
+    def __init__(self, root, config, role, current_user_role, view_users_callback):
         super().__init__(root)
         UpdateUserForm.config = config
         self.role = role
@@ -130,6 +161,14 @@ class UpdateUserForm(BaseForm):
             if role == User.Role.SYSTEM_ADMIN.value
             else "Consultant"
         )
+        self.current_user_role = current_user_role
+        self.choosable_roles = []
+        if self.current_user_role == User.Role.SUPER_ADMIN.value:
+            self.choosable_roles.append(User.Role.SYSTEM_ADMIN.value)
+            self.choosable_roles.append(User.Role.CONSULTANT.value)
+        elif self.current_user_role == User.Role.SYSTEM_ADMIN.value:
+            self.choosable_roles.append(User.Role.CONSULTANT.value)
+
         self.user_manager = UserManager(config)
         self.profile_manager = ProfileManager(config)
         self.view_users_callback = view_users_callback
@@ -151,44 +190,62 @@ class UpdateUserForm(BaseForm):
         self.current_username_label = tk.Label(
             self.root, text="Current Username", font=("Arial", 12)
         )
-        self.current_username_label.pack(pady=5)
+        self.current_username_label.pack(pady=5, padx=25)
         self.current_username_entry = tk.Entry(self.root, width=100)
         self.current_username_entry.insert(0, updated_user.username)
         self.current_username_entry.config(state="readonly")
-        self.current_username_entry.pack(pady=5)
+        self.current_username_entry.pack(pady=5, padx=25)
 
         # first name
         self.first_name_label = tk.Label(
             self.root, text="Please enter the first name", font=("Arial", 12)
         )
-        self.first_name_label.pack(pady=5)
+        self.first_name_label.pack(pady=5, padx=25)
         self.first_name_entry = tk.Entry(self.root, width=100)
         self.first_name_entry.insert(0, updated_profile.first_name)
-        self.first_name_entry.pack(pady=5)
+        self.first_name_entry.pack(pady=5, padx=25)
 
         # last name
         self.last_name_label = tk.Label(
             self.root, text="Please enter the last name", font=("Arial", 12)
         )
-        self.last_name_label.pack(pady=5)
+        self.last_name_label.pack(pady=5, padx=25)
         self.last_name_entry = tk.Entry(self.root, width=100)
         self.last_name_entry.insert(0, updated_profile.last_name)
-        self.last_name_entry.pack(pady=5)
+        self.last_name_entry.pack(pady=5, padx=25)
+
+        # role
+        self.role_label = tk.Label(self.root, text="Role", font=("Arial", 12))
+        self.role_label.pack(pady=5, padx=25)
+        self.role_combobox = ttk.Combobox(self.root, values=self.choosable_roles)
+        self.role_combobox.set(updated_user.role)
+        self.role_combobox.pack(pady=5, padx=25)
 
         # submit button
         self.submit_button = tk.Button(self.root, text="Save", command=self.submit)
-        self.submit_button.pack(pady=20)
+        self.submit_button.pack(pady=5)
+
+        # delete button
+        self.delete_button = tk.Button(
+            self.root,
+            text="Delete",
+            command=self.delete,
+            fg="red",
+            font=("Arial", 12, "bold"),
+        )
+        self.delete_button.pack(pady=5)
 
         # back button
         self.back_button = tk.Button(
             self.root, text="Cancel", command=self.view_users_callback
         )
-        self.back_button.pack(pady=20)
+        self.back_button.pack(pady=5)
 
     def submit(self):
         current_username = self.current_username_entry.get()
         new_first_name = self.first_name_entry.get()
         new_last_name = self.last_name_entry.get()
+        role = self.role_combobox.get()
 
         try:
             user_to_update = self.user_manager.get_user(current_username)
@@ -200,9 +257,12 @@ class UpdateUserForm(BaseForm):
                 if not validate_name(new_last_name):
                     errors.append("Last name has to be between 2 and 20 characters.")
 
+                if role not in self.choosable_roles:
+                    errors.append("Role is not valid, incident will be logged.")
+
                 if len(errors) == 0:
                     self.user_manager.update_user(
-                        user_to_update, current_username, self.role
+                        user_to_update, current_username, role
                     )
                     updated_user = self.user_manager.get_user(current_username)
                     if updated_user is not None:
@@ -229,59 +289,16 @@ class UpdateUserForm(BaseForm):
         except Exception as e:
             messagebox.showerror("Error", f"Failed to update user: {str(e)}")
 
-
-class DeleteUserForm(BaseForm):
-    config: Config = None
-    logger = AppLogger("app.log")
-
-
-    def __init__(self, root, config, role, view_users_callback):
-        super().__init__(root)
-        DeleteUserForm.config = config
-        self.role = role
-        self.user_manager = UserManager(config)
-        self.view_users_callback = view_users_callback
-
-    def show_form(self):
-        self.clear_screen()
-
-        # Create a title label
-        title_label = tk.Label(
-            self.root, text=f"Delete {self.role}", font=("Arial", 16, "bold")
-        )
-        title_label.pack(pady=10)
-
-        # description
-        description_label = tk.Label(
-            self.root, text="Select an user to delete: ", font=("Arial", 10)
-        )
-        description_label.pack()
-
-        # Get all users
-        options = []
-        for user in self.user_manager.get_users():
-            if user.role == self.role:
-                options.append(user.username)
-
-        # Create a combobox
-        self.roles_option = ttk.Combobox(self.root, values=options)
-        self.roles_option.pack()
-
-        # submit button
-        self.submit_button = tk.Button(self.root, text="Delete", command=self.submit)
-        self.submit_button.pack(pady=20)
-
-        # back button
-        self.back_button = tk.Button(
-            self.root, text="Cancel", command=self.view_users_callback
-        )
-        self.back_button.pack(pady=20)
-
-    def submit(self):
-        form_user = self.roles_option.get()
-        deleted_user = self.user_manager.get_user(form_user)
-        self.user_manager.delete_user(deleted_user)
+    def delete(self):
+        current_username = self.current_username_entry.get()
+        user = self.user_manager.get_user(current_username)
+        self.user_manager.delete_user(user)
         messagebox.showinfo("Information", "User has been deleted.")
-        
-        DeleteUserForm.logger.log_activity(f"{self.role}","User is deleted", f"User {deleted_user.username} is deleted",False)
+
+        # DeleteUserForm.logger.log_activity(
+        #     f"{self.role}",
+        #     "User is deleted",
+        #     f"User {deleted_user.username} is deleted",
+        #     False,
+        # )
         self.view_users_callback()
