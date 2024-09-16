@@ -6,7 +6,7 @@ from managers.user_manager import UserManager
 from managers.profile_manager import ProfileManager
 from config import Config
 from entities.user import User
-from validations import validate_username, validate_password, validate_name
+from validations import validate_server_input, validate_username, validate_password, validate_name
 from forms.Form import BaseForm
 from app_logger import AppLogger
 
@@ -15,10 +15,11 @@ class CreateUserForm(BaseForm):
     config: Config = None
     logger = AppLogger("app.log")
 
-    def __init__(self, root, config, role, current_user_role, view_users_callback):
+    def __init__(self, root, config, role, current_user_role, current_user, view_users_callback):
         super().__init__(root)
         CreateUserForm.config = config
         self.role = role
+        self.current_user = current_user
         self.role_clean = (
             "System Administrator"
             if role == User.Role.SYSTEM_ADMIN.value
@@ -114,24 +115,30 @@ class CreateUserForm(BaseForm):
         if not validate_name(last_name):
             errors.append("Last name has to be between 2 and 20 characters.")
 
-        if self.role not in self.choosable_roles:
+        if not validate_server_input(self.role, self.choosable_roles):
             errors.append("Role is not valid, incident will be logged.")
+            CreateUserForm.logger.log_activity(
+                    self.current_user,
+                    "Server-side input is modified. Role is not valid",
+                    f"username: {self.current_user.username}",
+                    False,
+                )
 
         if len(errors) == 0:
             user = self.user_manager.create_user(username, password, self.role)
             if self.role == User.Role.SYSTEM_ADMIN.value:
                 CreateUserForm.logger.log_activity(
-                    self.role,
+                    self.current_user,
                     "New admin user is created",
-                    f"username: {username}",
+                    f"username: {user.username}",
                     False,
                 )
 
             elif self.role == User.Role.CONSULTANT.value:
                 CreateUserForm.logger.log_activity(
-                    self.role,
+                    self.current_user,
                     "New Consultant user is created",
-                    f"username: {username}",
+                    f"username: {user.username}",
                     False,
                 )
 
@@ -152,7 +159,7 @@ class CreateUserForm(BaseForm):
 class UpdateUserForm(BaseForm):
     config: Config = None
 
-    def __init__(self, root, config, role, current_user_role, view_users_callback):
+    def __init__(self, root, config, role, current_user_role, current_user, view_users_callback):
         super().__init__(root)
         UpdateUserForm.config = config
         self.role = role
@@ -163,6 +170,7 @@ class UpdateUserForm(BaseForm):
         )
         self.current_user_role = current_user_role
         self.choosable_roles = []
+        self.current_user = current_user
         if self.current_user_role == User.Role.SUPER_ADMIN.value:
             self.choosable_roles.append(User.Role.SYSTEM_ADMIN.value)
             self.choosable_roles.append(User.Role.CONSULTANT.value)
@@ -257,8 +265,14 @@ class UpdateUserForm(BaseForm):
                 if not validate_name(new_last_name):
                     errors.append("Last name has to be between 2 and 20 characters.")
 
-                if role not in self.choosable_roles:
+                if not validate_server_input(role, self.choosable_roles):
                     errors.append("Role is not valid, incident will be logged.")
+                    CreateUserForm.logger.log_activity(
+                    self.role,
+                    "Server-side input is modified. Role is not valid",
+                    f"username: {current_username}",
+                    False,
+                )
 
                 if len(errors) == 0:
                     self.user_manager.update_user(
@@ -295,6 +309,7 @@ class UpdateUserForm(BaseForm):
         self.user_manager.delete_user(user)
         messagebox.showinfo("Information", "User has been deleted.")
 
+        # TODO: fix way to make use of logger without the DeleteUserForm
         # DeleteUserForm.logger.log_activity(
         #     f"{self.role}",
         #     "User is deleted",
