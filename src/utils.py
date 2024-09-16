@@ -48,3 +48,11 @@ def validate_username(username):
 def validate_password(password):
     pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[~!@#$%&_\-+=`|\\(){}[\]:;\'<>,.?/])[A-Za-z\d~!@#$%&_\-+=`|\\(){}[\]:;\'<>,.?/]{12,30}$"
     return bool(re.match(pattern, password))
+
+
+def datetime_to_string(time_to_convert=datetime.now()):
+    return time_to_convert.strftime("%m/%d/%Y, %H:%M:%S")
+
+
+def string_to_datetime(datetime_to_convert):
+    return datetime.strptime(datetime_to_convert, "%m/%d/%Y, %H:%M:%S")

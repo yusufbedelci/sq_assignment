@@ -96,8 +96,10 @@ class App:
         username = self.username_entry.get()
         password = self.password_entry.get()
         user = self.user_manager.login(username, password)
+
         if user:
             self.user = user
+            self.user_manager.update_last_login(user)
             if user.reset_password == 1:
                 reset_form = UserResetForm(
                     self.root, App.config, self.create_login_screen
@@ -105,14 +107,22 @@ class App:
                 reset_form.show_form(self.user, self.user.username)
 
             else:
-                App.logger.log_activity(self.user, "Login", "Login was sucessfull", False)
+                App.logger.log_activity(
+                    self.user, "Login", "Login was sucessfull", False
+                )
 
                 # send user to default page (based on role)
                 if (
                     self.user.role == User.Role.SUPER_ADMIN.value
                     or self.user.role == User.Role.SYSTEM_ADMIN.value
                 ):
-                    self.view_users()
+                    critical_logs = App.logger.get_critical_logs(self.user.last_login)
+                    print(critical_logs)
+                    if len(critical_logs) > 0:
+                        self.view_logs()
+                    else:
+                        self.view_users()
+
                 elif self.user.role == User.Role.CONSULTANT.value:
                     self.view_members()
         else:
@@ -138,8 +148,11 @@ class App:
     #
     def create_navbar(self, role, current_page):
         def handle_options(option):
-            if option == "Users":
+            if option == "Logs":
+                self.view_logs()
+            elif option == "Users":
                 self.view_users()
+
             elif option == "Members":
                 self.view_members()
             elif option == "Reset password":
@@ -158,6 +171,7 @@ class App:
 
         # print list of menu options
         menu_options = [
+            "Logs",
             "Users",
             "Members",
             "Reset password",
@@ -165,9 +179,8 @@ class App:
             "Backups",
             "Logout",
         ]
-        if role == User.Role.SYSTEM_ADMIN.value:
-            menu_options = menu_options[1:]
-        elif role == User.Role.CONSULTANT.value:
+
+        if role == User.Role.CONSULTANT.value:
             menu_options = menu_options[2:]
 
         for i, option in enumerate(menu_options):
@@ -249,6 +262,57 @@ class App:
     #
     # generic screens
     #
+    def view_logs(self):
+        self.clear_screen()
+        self.make_frames()
+        self.create_navbar(self.user.role, "Logs")
+
+        title_label = tk.Label(
+            self.right_frame,
+            text="Manage logs",
+            font=("Arial", 16, "bold"),
+            fg="white",
+        )
+        title_label.pack(pady=10)
+
+        def on_log_click(event):
+            item = tree.selection()[0]
+            no = tree.item(item, "values")[0]
+            datetime = tree.item(item, "values")[1]
+            level = tree.item(item, "values")[2]
+            description = tree.item(item, "values")[3]
+            self.clear_screen()
+            self.make_frames()
+            self.create_navbar(self.user.role, "Logs")
+
+            content = tk.Text(self.right_frame, wrap="word", width=100, height=10)
+            content.insert("end", f"No: {no}\n")
+            content.insert("end", f"Date & Time: {datetime}\n")
+            content.insert("end", f"Level: {level}\n")
+            content.insert("end", f"Description: {description}\n")
+            content.pack()
+
+            # back button
+            self.back_button = tk.Button(
+                self.right_frame, text="Back", command=self.view_logs
+            )
+            self.back_button.pack(pady=5)
+
+        tree = ttk.Treeview(
+            self.right_frame,
+            columns=("No", "Datetime", "Level", "Description"),
+            show="headings",
+        )
+        tree.heading("No", text="No")
+        tree.heading("Datetime", text="Datetime")
+        tree.heading("Level", text="Level")
+        tree.heading("Description", text="Description")
+        tree.pack(padx=10, pady=10)
+        tree.bind("<Double-1>", on_log_click)
+
+        for id, line in enumerate(App.logger.get_logs()):
+            tree.insert("", "end", values=(id, line[0], line[1], line[2]))
+
     def view_users(self):
         self.clear_screen()
         self.make_frames()

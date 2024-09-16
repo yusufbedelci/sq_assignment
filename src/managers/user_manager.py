@@ -1,8 +1,9 @@
+import datetime
 import os
 import hashlib
 
 from config import Config
-from utils import rsa_encrypt, rsa_decrypt
+from utils import rsa_encrypt, rsa_decrypt, datetime_to_string
 from managers.base_manager import BaseManager
 from entities.user import User
 
@@ -18,7 +19,8 @@ class UserManager(BaseManager):
                 username TEXT NOT NULL UNIQUE,
                 password TEXT NOT NULL,
                 role TEXT NOT NULL,
-                reset_password BOOLEAN NOT NULL DEFAULT 0
+                reset_password BOOLEAN NOT NULL DEFAULT 0,
+                last_login TEXT NOT NULL
                 );
             """
 
@@ -41,16 +43,20 @@ class UserManager(BaseManager):
         encrypted_role = rsa_encrypt(
             User.Role.SUPER_ADMIN.value, self.config.public_key
         )
+        encrypted_last_login = rsa_encrypt(datetime_to_string(), self.config.public_key)
 
-        SQL_CREATE_SUPER_ADMIN = (
-            f"INSERT INTO users (username, password, role) VALUES (?, ?, ?);"
-        )
+        SQL_CREATE_SUPER_ADMIN = f"INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);"
 
         try:
             cursor = self.config.con.cursor()
             cursor.execute(
                 SQL_CREATE_SUPER_ADMIN,
-                (encrypted_username, encrypted_password, encrypted_role),
+                (
+                    encrypted_username,
+                    encrypted_password,
+                    encrypted_role,
+                    encrypted_last_login,
+                ),
             )
             self.config.con.commit()
         finally:
@@ -60,8 +66,20 @@ class UserManager(BaseManager):
         user = self.get_user(username)
         if user is None:
             return None
-
         return user if self.verify_password(user.password, password) else None
+
+    def update_last_login(self, user):
+        # user.last_login
+        encrypted_last_login = rsa_encrypt(datetime_to_string(), self.config.public_key)
+        SQL_UPDATE_LAST_LOGIN = """
+                UPDATE users SET last_login = ? WHERE id = ?;
+                """
+        try:
+            cursor = self.config.con.cursor()
+            cursor.execute(SQL_UPDATE_LAST_LOGIN, (encrypted_last_login, user.id))
+            self.config.con.commit()
+        finally:
+            cursor.close()
 
     def hash_and_salt(self, password):
         salt = os.urandom(16)
@@ -97,6 +115,7 @@ class UserManager(BaseManager):
             user.username = rsa_decrypt(user.username, self.config.private_key)
             user.password = rsa_decrypt(user.password, self.config.private_key)
             user.role = rsa_decrypt(user.role, self.config.private_key)
+            user.last_login = rsa_decrypt(user.last_login, self.config.private_key)
             users.append(user)
 
         return users
@@ -115,16 +134,22 @@ class UserManager(BaseManager):
         encrypted_username = rsa_encrypt(username, self.config.public_key)
         encrypted_password = rsa_encrypt(hashed_password, self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
+        encrypted_last_login = rsa_encrypt(datetime_to_string(), self.config.public_key)
 
         SQL_CREATE_USER = """
-            INSERT INTO users (username, password, role) VALUES (?, ?, ?);
+            INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);
         """
 
         try:
             cursor = self.config.con.cursor()
             cursor.execute(
                 SQL_CREATE_USER,
-                (encrypted_username, encrypted_password, encrypted_role),
+                (
+                    encrypted_username,
+                    encrypted_password,
+                    encrypted_role,
+                    encrypted_last_login,
+                ),
             )
             self.config.con.commit()
         finally:
