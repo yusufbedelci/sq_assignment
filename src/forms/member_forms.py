@@ -10,6 +10,7 @@ from entities.user import User
 from validations import (
     validate_name,
     validate_age,
+    validate_server_input,
     validate_weight,
     validate_email,
     validate_phone_number,
@@ -183,10 +184,10 @@ class CreateMemberForm(BaseForm):
         if not validate_zip_code(zip_code):
             errors.append("Zip code is not valid.")
 
-        if gender not in self.gender_options:
+        if not validate_server_input(gender, self.gender_options):
             errors.append("Gender is not valid, incident will be reported.")
 
-        if city not in self.city_options:
+        if not validate_server_input(city, self.city_options):
             errors.append("City is not valid, incident will be reported.")
 
         if len(errors) == 0:
@@ -393,10 +394,10 @@ class UpdateMemberForm(BaseForm):
         if not validate_zip_code(updated_zip_code):
             errors.append("Zip code is not valid.")
 
-        if updated_gender not in self.gender_options:
+        if not validate_server_input(updated_gender, self.gender_options):
             errors.append("Gender is not valid, incident will be reported.")
 
-        if updated_city not in self.city_options:
+        if not validate_server_input(updated_city, self.city_options):
             errors.append("City is not valid, incident will be reported.")
 
         if len(errors) == 0:
