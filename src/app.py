@@ -105,7 +105,7 @@ class App:
                 reset_form.show_form(self.user, self.user.username)
 
             else:
-                App.logger.log_activity(self.user.username, "Login", " ", False)
+                App.logger.log_activity(self.user, "Login", "Login was sucessfull", False)
 
                 # send user to default page (based on role)
                 if (
@@ -118,14 +118,14 @@ class App:
         else:
             self.login_attempts += 1
             App.logger.log_activity(
-                f"{username}",
-                "Unsuccesfull Login",
+                user,
+                "Login failed",
                 f"username: {username} is used for a login attempt with a wrong password",
                 False,
             )
             if self.login_attempts >= 3:
                 App.logger.log_activity(
-                    f"{username}",
+                    self.user,
                     "Unsuccesfull Login",
                     f"Multiple usernames and passwords are tried in a row",
                     True,
@@ -276,6 +276,7 @@ class App:
                 self.right_frame,
                 App.config,
                 role,
+                self.user,
                 self.user.role,
                 self.view_users,
             )
@@ -294,6 +295,7 @@ class App:
                 App.config,
                 User.Role.SYSTEM_ADMIN.value,
                 self.user.role,
+                self.user,
                 self.view_users,
             )
             form.show_form()
