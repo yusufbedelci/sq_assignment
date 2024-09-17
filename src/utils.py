@@ -50,7 +50,7 @@ def validate_password(password):
     return bool(re.match(pattern, password))
 
 
-def datetime_to_string(time_to_convert=datetime.now()):
+def datetime_to_string(time_to_convert):
     return time_to_convert.strftime("%m/%d/%Y, %H:%M:%S")
 
 

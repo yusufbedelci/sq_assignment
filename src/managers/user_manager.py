@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import os
 import hashlib
 
@@ -43,7 +43,7 @@ class UserManager(BaseManager):
         encrypted_role = rsa_encrypt(
             User.Role.SUPER_ADMIN.value, self.config.public_key
         )
-        encrypted_last_login = rsa_encrypt(datetime_to_string(), self.config.public_key)
+        encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
 
         SQL_CREATE_SUPER_ADMIN = f"INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);"
 
@@ -70,7 +70,7 @@ class UserManager(BaseManager):
 
     def update_last_login(self, user):
         # user.last_login
-        encrypted_last_login = rsa_encrypt(datetime_to_string(), self.config.public_key)
+        encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
         SQL_UPDATE_LAST_LOGIN = """
                 UPDATE users SET last_login = ? WHERE id = ?;
                 """
@@ -134,7 +134,7 @@ class UserManager(BaseManager):
         encrypted_username = rsa_encrypt(username, self.config.public_key)
         encrypted_password = rsa_encrypt(hashed_password, self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
-        encrypted_last_login = rsa_encrypt(datetime_to_string(), self.config.public_key)
+        encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
 
         SQL_CREATE_USER = """
             INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);

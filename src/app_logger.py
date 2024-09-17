@@ -1,6 +1,6 @@
 import logging
 from config import Config
-from utils import rsa_encrypt, string_to_datetime
+from utils import string_to_datetime
 
 
 class AppLogger:
@@ -62,3 +62,16 @@ class AppLogger:
             ):
                 critical_logs.append(log)
         return critical_logs
+
+    def get_logs_sorted(self, last_login):
+        all_logs = reversed(self.get_logs())
+        labeled_logs = []
+        for log in all_logs:
+            if log[1] == "CRITICAL" and string_to_datetime(log[0]) > string_to_datetime(
+                last_login
+            ):
+                labeled_logs.append(["unread", log])
+            else:
+                labeled_logs.append(["read", log])
+
+        return labeled_logs

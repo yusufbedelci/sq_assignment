@@ -119,6 +119,10 @@ class App:
                     critical_logs = App.logger.get_critical_logs(self.user.last_login)
                     print(critical_logs)
                     if len(critical_logs) > 0:
+                        messagebox.showwarning(
+                            "Critical log warning",
+                            "There are some critical logs to review",
+                        )
                         self.view_logs()
                     else:
                         self.view_users()
@@ -290,6 +294,7 @@ class App:
             content.insert("end", f"Date & Time: {datetime}\n")
             content.insert("end", f"Level: {level}\n")
             content.insert("end", f"Description: {description}\n")
+
             content.pack()
 
             # back button
@@ -307,11 +312,33 @@ class App:
         tree.heading("Datetime", text="Datetime")
         tree.heading("Level", text="Level")
         tree.heading("Description", text="Description")
+
+        tree.tag_configure(
+            "bold_tag",
+            background="red",
+            font="TkFixedFont",
+        )
+
         tree.pack(padx=10, pady=10)
         tree.bind("<Double-1>", on_log_click)
 
-        for id, line in enumerate(App.logger.get_logs()):
-            tree.insert("", "end", values=(id, line[0], line[1], line[2]))
+        logs = App.logger.get_logs_sorted(self.user.last_login)
+        for id, line in enumerate(logs):
+            r_id = len(logs) - id - 1
+
+            if line[0] == "unread":
+                tree.insert(
+                    "",
+                    "end",
+                    values=(r_id, line[1][0], line[1][1], line[1][2]),
+                    tags=("bold_tag",),
+                )
+            else:
+                tree.insert(
+                    "",
+                    "end",
+                    values=(r_id, line[1][0], line[1][1], line[1][2]),
+                )
 
     def view_users(self):
         self.clear_screen()
