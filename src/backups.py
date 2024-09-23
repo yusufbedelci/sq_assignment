@@ -16,6 +16,8 @@ class Backups:
             # Create a file name based on the current datetime
             timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
             sql_file_name = "data.sql"
+            log_backup_file_name = "log_backup.log"
+            log_file_name = "app.log"
             zip_file_name = f"{timestamp}.zip"
 
             # Open the backup file in write mode
@@ -24,14 +26,22 @@ class Backups:
                 for line in self.config.con.iterdump():
                     f.write(f"{line}\n")
 
+            # copy the log file to the backup directory
+            with open(log_file_name, "r") as f:
+                with open(f"{log_backup_file_name}", "w") as backup_file:
+                    backup_file.write(f.read())
+
             # Create a zip file containing the SQL backup
             with zipfile.ZipFile(f"backups/{zip_file_name}", "w") as zipf:
                 zipf.write(sql_file_name, arcname=sql_file_name)
+                zipf.write(f"{log_backup_file_name}", arcname=log_backup_file_name)
 
             # Remove the temporary SQL file
             os.remove(sql_file_name)
+            os.remove(log_backup_file_name)
 
             print(f"Backup created successfully: {zip_file_name}")
+            return zip_file_name
         except Exception as e:
             print(f"Error creating backup: {e}")
 
@@ -44,6 +54,9 @@ class Backups:
             # Ensure the data.sql file exists
             if not os.path.exists("data.sql"):
                 raise FileNotFoundError("data.sql not found in the zip file")
+
+            if not os.path.exists("log_backup.log"):
+                raise FileNotFoundError("log_backup.log not found in the zip file")
 
             # Disable foreign key checks to avoid conflicts
             cursor = self.config.con.cursor()
@@ -71,6 +84,11 @@ class Backups:
 
             # Remove the temporary SQL file
             os.remove("data.sql")
+
+            # Restore log file
+            with open("log_backup.log", "r") as f:
+                with open("app.log", "w") as log_file:
+                    log_file.write(f.read())
 
             print(f"Database restored successfully from {zip_file_name}")
         except Exception as e:

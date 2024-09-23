@@ -43,7 +43,9 @@ class UserManager(BaseManager):
         encrypted_role = rsa_encrypt(
             User.Role.SUPER_ADMIN.value, self.config.public_key
         )
-        encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
+        encrypted_last_login = rsa_encrypt(
+            datetime_to_string(datetime.now()), self.config.public_key
+        )
 
         SQL_CREATE_SUPER_ADMIN = f"INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);"
 
@@ -70,7 +72,9 @@ class UserManager(BaseManager):
 
     def update_last_login(self, user):
         # user.last_login
-        encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
+        encrypted_last_login = rsa_encrypt(
+            datetime_to_string(datetime.now()), self.config.public_key
+        )
         SQL_UPDATE_LAST_LOGIN = """
                 UPDATE users SET last_login = ? WHERE id = ?;
                 """
@@ -127,14 +131,13 @@ class UserManager(BaseManager):
         return None
 
     def create_user(self, username: str, password: str, role: str):
-        if self.check_if_user_exist(username):
-            return None
-
         hashed_password = self.hash_and_salt(password)
         encrypted_username = rsa_encrypt(username, self.config.public_key)
         encrypted_password = rsa_encrypt(hashed_password, self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
-        encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
+        encrypted_last_login = rsa_encrypt(
+            datetime_to_string(datetime.now()), self.config.public_key
+        )
 
         SQL_CREATE_USER = """
             INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);
@@ -223,8 +226,7 @@ class UserManager(BaseManager):
         finally:
             cursor.close()
 
-    def check_if_user_exist(self, username):
-        if next(filter(lambda user: user.username == username, self.get_users()), None):
+    def is_available_username(self, username):
+        if username not in (user.username for user in self.get_users()):
             return True
-        else:
-            return False
+        return False

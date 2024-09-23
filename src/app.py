@@ -10,7 +10,6 @@ from managers.profile_manager import ProfileManager
 from managers.user_manager import UserManager
 from backups import Backups
 
-# from forms.Form import CreateForm, DeleteForm, UpdateForm
 from forms.user_forms import *
 from forms.member_forms import *
 from entities.user import User
@@ -25,6 +24,7 @@ class App:
     def __init__(self, root, config):
         self.root = root
         App.config = config
+        App.logger.config = config
 
         self.user_manager = UserManager(config)
         self.address_manager = AddressManager(config)
@@ -102,7 +102,11 @@ class App:
             self.user_manager.update_last_login(user)
             if user.reset_password == 1:
                 reset_form = UserResetForm(
-                    self.root, App.config, self.create_login_screen
+                    self.root,
+                    App.config,
+                    App.logger,
+                    self.user,
+                    self.create_login_screen,
                 )
                 reset_form.show_form(self.user, self.user.username)
 
@@ -211,7 +215,9 @@ class App:
         self.make_frames()
         self.create_navbar(self.user.role, "Reset password")
 
-        reset_form = OtherResetForm(self.right_frame, App.config, self.correct_menu())
+        reset_form = OtherResetForm(
+            self.right_frame, App.config, App.logger, self.user, self.correct_menu()
+        )
         tree = ttk.Treeview(
             self.right_frame, columns=("Username", "Role", "Reset"), show="headings"
         )
@@ -259,9 +265,13 @@ class App:
         self.create_navbar(self.user.role, "Reset my password")
 
         reset_form = UserResetForm(
-            self.right_frame, App.config, self.create_login_screen
+            self.right_frame,
+            App.config,
+            App.logger,
+            self.user,
+            self.create_login_screen,
         )
-        reset_form.show_form(self.user, self.user.username)
+        reset_form.show_form(self.user.username)
 
     #
     # generic screens
@@ -324,7 +334,7 @@ class App:
 
         logs = App.logger.get_logs_sorted(self.user.last_login)
         for id, line in enumerate(logs):
-            r_id = len(logs) - id - 1
+            r_id = len(logs) - id
 
             if line[0] == "unread":
                 tree.insert(
@@ -366,9 +376,8 @@ class App:
             update_form = UpdateUserForm(
                 self.right_frame,
                 App.config,
-                role,
+                App.logger,
                 self.user,
-                self.user.role,
                 self.view_users,
             )
             update_form.show_form(username)
@@ -384,8 +393,7 @@ class App:
             form = CreateUserForm(
                 self.right_frame,
                 App.config,
-                User.Role.SYSTEM_ADMIN.value,
-                self.user.role,
+                App.logger,
                 self.user,
                 self.view_users,
             )
@@ -433,7 +441,9 @@ class App:
         description_label.pack()
 
         def add_new_member():
-            form = CreateMemberForm(self.right_frame, App.config, self.view_members)
+            form = CreateMemberForm(
+                self.right_frame, App.config, App.logger, self.user, self.view_members
+            )
             form.show_form()
 
         button = tk.Button(
@@ -453,7 +463,7 @@ class App:
             item = tree.selection()[0]
             id = tree.item(item, "values")[0]
             update_form = UpdateMemberForm(
-                self.right_frame, App.config, self.view_members
+                self.right_frame, App.config, App.logger, self.user, self.view_members
             )
             update_form.show_form(int(id))
 
@@ -553,8 +563,11 @@ class App:
         self.backup_manager = Backups(App.config)
 
         def new_backup():
-            self.backup_manager.create()
+            backup_name = self.backup_manager.create()
             messagebox.showinfo("Backup Created", "Backup created successfully")
+            self.logger.log_activity(
+                self.user, "created_backup", f"{backup_name}", False
+            )
             self.view_backups()
 
         button = tk.Button(

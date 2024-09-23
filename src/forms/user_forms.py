@@ -6,31 +6,30 @@ from managers.user_manager import UserManager
 from managers.profile_manager import ProfileManager
 from config import Config
 from entities.user import User
-from validations import validate_server_input, validate_username, validate_password, validate_name
+from validations import (
+    validate_server_input,
+    validate_username,
+    validate_password,
+    validate_name,
+)
 from forms.Form import BaseForm
-from app_logger import AppLogger
 
 
 class CreateUserForm(BaseForm):
-    config: Config = None
-    logger = AppLogger("app.log")
-
-    def __init__(self, root, config, role, current_user_role, current_user, view_users_callback):
-        super().__init__(root)
-        CreateUserForm.config = config
-        self.role = role
-        self.current_user = current_user
-        self.role_clean = (
-            "System Administrator"
-            if role == User.Role.SYSTEM_ADMIN.value
-            else "Consultant"
-        )
-        self.current_user_role = current_user_role
+    def __init__(
+        self,
+        root,
+        config,
+        logger,
+        sender,
+        view_users_callback,
+    ):
+        super().__init__(root, config, logger, sender)
         self.choosable_roles = []
-        if self.current_user_role == User.Role.SUPER_ADMIN.value:
+        if self.sender.role == User.Role.SUPER_ADMIN.value:
             self.choosable_roles.append(User.Role.SYSTEM_ADMIN.value)
             self.choosable_roles.append(User.Role.CONSULTANT.value)
-        elif self.current_user_role == User.Role.SYSTEM_ADMIN.value:
+        elif self.sender.role == User.Role.SYSTEM_ADMIN.value:
             self.choosable_roles.append(User.Role.CONSULTANT.value)
 
         self.user_manager = UserManager(config)
@@ -42,7 +41,7 @@ class CreateUserForm(BaseForm):
 
         # Create a title label
         title_label = tk.Label(
-            self.root, text=f"Add new {self.role_clean}", font=("Arial", 16, "bold")
+            self.root, text="Add new User", font=("Arial", 16, "bold")
         )
         title_label.pack(pady=10)
 
@@ -117,39 +116,31 @@ class CreateUserForm(BaseForm):
 
         if not validate_server_input(self.role, self.choosable_roles):
             errors.append("Role is not valid, incident will be logged.")
-            CreateUserForm.logger.log_activity(
-                    self.current_user,
-                    "Server-side input is modified. Role is not valid",
-                    f"username: {self.current_user.username}",
-                    False,
-                )
+            self.logger.log_activity(
+                self.sender,
+                "Server-side input is modified.",
+                f"Role was not valid: {self.role}",
+                True,
+            )
+
+        if not self.user_manager.is_available_username(username):
+            errors.append("Username is already taken.")
 
         if len(errors) == 0:
             user = self.user_manager.create_user(username, password, self.role)
-            if self.role == User.Role.SYSTEM_ADMIN.value:
-                CreateUserForm.logger.log_activity(
-                    self.current_user,
-                    "New admin user is created",
-                    f"username: {user.username}",
-                    False,
-                )
-
-            elif self.role == User.Role.CONSULTANT.value:
-                CreateUserForm.logger.log_activity(
-                    self.current_user,
-                    "New Consultant user is created",
-                    f"username: {user.username}",
-                    False,
-                )
+            self.logger.log_activity(
+                self.sender,
+                "created user",
+                f"with username: {user.username}",
+                False,
+            )
 
             if user is not None:
                 profile = self.profile_manager.create_profile(
                     first_name, last_name, user.id
                 )
                 if profile is not None:
-                    messagebox.showinfo(
-                        "Information", f"{self.role_clean} has been created."
-                    )
+                    messagebox.showinfo("Information", f"User has been created.")
                     self.view_users_callback()
         else:
             messages = "\n".join(errors)
@@ -157,28 +148,24 @@ class CreateUserForm(BaseForm):
 
 
 class UpdateUserForm(BaseForm):
-    config: Config = None
-
-    def __init__(self, root, config, role, current_user_role, current_user, view_users_callback):
-        super().__init__(root)
-        UpdateUserForm.config = config
-        self.role = role
-        self.role_clean = (
-            "System Administrator"
-            if role == User.Role.SYSTEM_ADMIN.value
-            else "Consultant"
-        )
-        self.current_user_role = current_user_role
+    def __init__(
+        self,
+        root,
+        config,
+        logger,
+        sender,
+        view_users_callback,
+    ):
+        super().__init__(root, config, logger, sender)
         self.choosable_roles = []
-        self.current_user = current_user
-        if self.current_user_role == User.Role.SUPER_ADMIN.value:
+        if self.sender.role == User.Role.SUPER_ADMIN.value:
             self.choosable_roles.append(User.Role.SYSTEM_ADMIN.value)
             self.choosable_roles.append(User.Role.CONSULTANT.value)
-        elif self.current_user_role == User.Role.SYSTEM_ADMIN.value:
+        elif self.sender.role == User.Role.SYSTEM_ADMIN.value:
             self.choosable_roles.append(User.Role.CONSULTANT.value)
 
-        self.user_manager = UserManager(config)
-        self.profile_manager = ProfileManager(config)
+        self.user_manager = UserManager(self.config)
+        self.profile_manager = ProfileManager(self.config)
         self.view_users_callback = view_users_callback
 
     def show_form(self, username):
@@ -190,7 +177,7 @@ class UpdateUserForm(BaseForm):
 
         # Create a title label
         title_label = tk.Label(
-            self.root, text=f"Update {self.role_clean}", font=("Arial", 16, "bold")
+            self.root, text=f"Update User", font=("Arial", 16, "bold")
         )
         title_label.pack(pady=10)
 
@@ -267,12 +254,12 @@ class UpdateUserForm(BaseForm):
 
                 if not validate_server_input(role, self.choosable_roles):
                     errors.append("Role is not valid, incident will be logged.")
-                    CreateUserForm.logger.log_activity(
-                    self.role,
-                    "Server-side input is modified. Role is not valid",
-                    f"username: {current_username}",
-                    False,
-                )
+                    self.logger.log_activity(
+                        self.sender,
+                        "Server-side input is modified.",
+                        f"Role was not valid: {role}",
+                        True,
+                    )
 
                 if len(errors) == 0:
                     self.user_manager.update_user(
@@ -289,6 +276,12 @@ class UpdateUserForm(BaseForm):
                         if updated_profile is not None:
                             messagebox.showinfo(
                                 "Information", "User has been updated successfully."
+                            )
+                            self.logger.log_activity(
+                                self.sender,
+                                "updated user",
+                                f"with username: {updated_user.username}",
+                                False,
                             )
                             self.view_users_callback()
                     else:
@@ -309,11 +302,7 @@ class UpdateUserForm(BaseForm):
         self.user_manager.delete_user(user)
         messagebox.showinfo("Information", "User has been deleted.")
 
-        # TODO: fix way to make use of logger without the DeleteUserForm
-        # DeleteUserForm.logger.log_activity(
-        #     f"{self.role}",
-        #     "User is deleted",
-        #     f"User {deleted_user.username} is deleted",
-        #     False,
-        # )
+        self.logger.log_activity(
+            self.sender, "deleted user", f"with username: {user.username}", False
+        )
         self.view_users_callback()

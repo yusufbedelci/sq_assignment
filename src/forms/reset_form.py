@@ -8,15 +8,12 @@ from utils import validate_password
 
 
 class UserResetForm(BaseForm):
-    config: Config = None
-
-    def __init__(self, root, config, reset_callback):
-        super().__init__(root)
-        UserResetForm.config = config
+    def __init__(self, root, config, logger, sender, reset_callback):
+        super().__init__(root, config, logger, sender)
         self.user_manager = UserManager(config)
         self.reset_callback = reset_callback
 
-    def show_form(self, current_user: User, reseted_username: str):
+    def show_form(self, reseted_username: str):
         self.clear_screen()
 
         title_label = tk.Label(
@@ -54,17 +51,23 @@ class UserResetForm(BaseForm):
             self.user_manager.reset_password(reseted_user, password)
             messagebox.showinfo("Information", "User password has been set.")
             self.user_manager.reset_password_status(reseted_user)
+            self.logger.log_activity(
+                self.sender,
+                "reset their own password",
+                f"with role: {reseted_user.role}",
+                False,
+            )
             self.reset_callback()
         else:
             messagebox.showinfo("Information", "Please try Again")
 
 
 class OtherResetForm(UserResetForm):
-    def __init__(self, root, config, reset_callback):
-        super().__init__(root, config, reset_callback)
+    def __init__(self, root, config, logger, sender, reset_callback):
+        super().__init__(root, config, logger, sender, reset_callback)
 
-    def show_form(self, current_user: User, reseted_username: str):
-        return super().show_form(current_user, reseted_username)
+    def show_form(self, reseted_username: str):
+        return super().show_form(reseted_username)
 
     def submit(self):
         reseted_user = self.user_manager.get_user(self.current_username_entry.get())
@@ -74,6 +77,12 @@ class OtherResetForm(UserResetForm):
             self.user_manager.reset_password(reseted_user, password)
             messagebox.showinfo("Information", "User temp password has been set.")
             self.user_manager.reset_password_status(reseted_user, True)
+            self.logger.log_activity(
+                self.sender,
+                "reset password of user",
+                f"with username: {reseted_user.username}",
+                False,
+            )
             self.reset_callback()
         else:
             messagebox.showinfo("Information", "Please try Again")

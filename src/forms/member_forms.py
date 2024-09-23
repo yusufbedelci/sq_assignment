@@ -22,13 +22,10 @@ from forms.Form import BaseForm
 
 
 class CreateMemberForm(BaseForm):
-    config: Config = None
-
-    def __init__(self, root, config, view_members_callback):
-        super().__init__(root)
-        CreateMemberForm.config = config
-        self.member_manager = MemberManager(config)
-        self.address_manager = AddressManager(config)
+    def __init__(self, root, config, logger, sender, view_members_callback):
+        super().__init__(root, config, logger, sender)
+        self.member_manager = MemberManager(self.config)
+        self.address_manager = AddressManager(self.config)
         self.view_members_callback = view_members_callback
 
     def show_form(self):
@@ -186,9 +183,21 @@ class CreateMemberForm(BaseForm):
 
         if not validate_server_input(gender, self.gender_options):
             errors.append("Gender is not valid, incident will be reported.")
+            self.logger.log_activity(
+                self.sender,
+                "Server-side input is modified.",
+                f"Gender was not valid: {gender}",
+                True,
+            )
 
         if not validate_server_input(city, self.city_options):
             errors.append("City is not valid, incident will be reported.")
+            self.logger.log_activity(
+                self.sender,
+                "Server-side input is modified.",
+                f"City was not valid: {city}",
+                True,
+            )
 
         if len(errors) == 0:
             member = self.member_manager.create_member(
@@ -200,6 +209,9 @@ class CreateMemberForm(BaseForm):
                 )
                 if address is not None:
                     messagebox.showinfo("Information", "Member has been created.")
+                    self.logger.log_activity(
+                        self.sender, "created member", f"with id: {member.id}", False
+                    )
                     self.view_members_callback()
         else:
             messages = "\n".join(errors)
@@ -207,11 +219,8 @@ class CreateMemberForm(BaseForm):
 
 
 class UpdateMemberForm(BaseForm):
-    config: Config = None
-
-    def __init__(self, root, config, view_members_callback):
-        super().__init__(root)
-        UpdateMemberForm.config = config
+    def __init__(self, root, config, logger, sender, view_members_callback):
+        super().__init__(root, config, logger, sender)
         self.member_manager = MemberManager(config)
         self.address_manager = AddressManager(config)
         self.view_members_callback = view_members_callback
@@ -396,9 +405,21 @@ class UpdateMemberForm(BaseForm):
 
         if not validate_server_input(updated_gender, self.gender_options):
             errors.append("Gender is not valid, incident will be reported.")
+            self.logger.log_activity(
+                self.sender,
+                "Server-side input is modified.",
+                f"Gender was not valid: {updated_gender}",
+                True,
+            )
 
         if not validate_server_input(updated_city, self.city_options):
             errors.append("City is not valid, incident will be reported.")
+            self.logger.log_activity(
+                self.sender,
+                "Server-side input is modified.",
+                f"City was not valid: {updated_city}",
+                True,
+            )
 
         if len(errors) == 0:
             member_to_update = self.member_to_update
@@ -428,6 +449,12 @@ class UpdateMemberForm(BaseForm):
                     messagebox.showinfo(
                         "Information", "Member has been updated successfully."
                     )
+                    self.logger.log_activity(
+                        self.sender,
+                        "updated member",
+                        f"with id: {updated_member.id}",
+                        False,
+                    )
                     self.view_members_callback()
                 else:
                     messagebox.showerror("Error", "Failed to retrieve updated address.")
@@ -441,4 +468,7 @@ class UpdateMemberForm(BaseForm):
         member = self.member_manager.get_member(self.member_to_update.id)
         self.member_manager.delete_member(member)
         messagebox.showinfo("Information", "Member has been deleted.")
+        self.logger.log_activity(
+            self.sender, "deleted member", f"with id: {member.id}", False
+        )
         self.view_members_callback()

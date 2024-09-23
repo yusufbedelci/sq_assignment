@@ -1,54 +1,49 @@
+from datetime import datetime
 import logging
 from config import Config
-from utils import string_to_datetime
+from utils import datetime_to_string, string_to_datetime, rsa_encrypt, rsa_decrypt
+import base64
 
 
 class AppLogger:
     def __init__(self, config: Config, log_file="app.log", level=logging.DEBUG):
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(level)
         self.login_attempts = 0
         self.config = config
+        self.log_file = log_file
 
-        if not self.logger.hasHandlers():
-            c_handler = logging.StreamHandler()
-            f_handler = logging.FileHandler(log_file, mode="a")
-
-            c_format = logging.Formatter(
-                "%(asctime)s | %(levelname)s | %(message)s",
-                datefmt="%m/%d/%Y, %H:%M:%S",
-            )
-            f_format = logging.Formatter(
-                "%(asctime)s | %(levelname)s | %(message)s",
-                datefmt="%m/%d/%Y, %H:%M:%S",
-            )
-
-            c_handler.setFormatter(c_format)
-            f_handler.setFormatter(f_format)
-
-            # Add handlers to the logger
-            self.logger.addHandler(c_handler)
-            self.logger.addHandler(f_handler)
+    def write(self, log_line):
+        with open(self.log_file, "a") as file:
+            file.write(log_line + "\n")
 
     def log_activity(self, user, descr_activity, additional_info, suspicious_level):
+        current_datetime = datetime_to_string(datetime.now())
+        level_name = "CRITICAL" if suspicious_level else "INFO"
         if user is not None:
             message = f"User: {user.username}, Role: ({user.role}), Performed activity: {descr_activity}, Info: {additional_info}"
         else:
             message = f"Activity: {descr_activity}, Info: {additional_info}"
 
-        # self.logger.info(rsa_encrypt(message,self.config.public_key))
-        if suspicious_level == True:
-            self.logger.critical(message)
-        else:
-            self.logger.info(message)
+        if "|" in message:
+            message = message.replace("|", "%7C")
+
+        log_line = rsa_encrypt(
+            f"{current_datetime}|{level_name}|{message}|{suspicious_level}",
+            self.config.public_key,
+        )
+        encrypted_log_b64 = base64.b64encode(log_line).decode()
+        self.write(encrypted_log_b64)
 
     def get_logs(self):
-        log_file = self.logger.handlers[1].baseFilename
+        log_file = self.log_file
         logs = []
         try:
             with open(log_file, "r") as file:
                 for line in file.readlines():
-                    values = [val.strip() for val in line.split("|")]
+                    line = base64.b64decode(line)
+                    line = rsa_decrypt(line, self.config.private_key)
+                    values = [
+                        val.replace("%7C", "|").strip() for val in line.split("|")
+                    ]
                     logs.append(values)
         except FileNotFoundError:
             pass
