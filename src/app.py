@@ -626,6 +626,12 @@ class App:
                 "Unauthorized", "You are not authorized to view this page."
             )
             # send to default page
+            if self.user.role == User.Role.SUPER_ADMIN.value:
+                self.view_users()
+            elif self.user.role == User.Role.SYSTEM_ADMIN.value:
+                self.view_users()
+            elif self.user.role == User.Role.CONSULTANT.value:
+                self.view_members()
 
         messagebox.showerror("Something went wrong", "Please log in again.")
         self.logout()
