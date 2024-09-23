@@ -155,6 +155,7 @@ class UpdateUserForm(BaseForm):
         logger,
         sender,
         view_users_callback,
+        view_password_reset,
     ):
         super().__init__(root, config, logger, sender)
         self.choosable_roles = []
@@ -167,6 +168,7 @@ class UpdateUserForm(BaseForm):
         self.user_manager = UserManager(self.config)
         self.profile_manager = ProfileManager(self.config)
         self.view_users_callback = view_users_callback
+        self.view_password_reset = view_password_reset
 
     def show_form(self, username):
         self.clear_screen()
@@ -215,6 +217,14 @@ class UpdateUserForm(BaseForm):
         self.role_combobox = ttk.Combobox(self.root, values=self.choosable_roles)
         self.role_combobox.set(updated_user.role)
         self.role_combobox.pack(pady=5, padx=25)
+
+        # reset password button
+        self.reset_password_button = tk.Button(
+            self.root,
+            text="Reset Password",
+            command=lambda: self.view_password_reset(updated_user.username),
+        )
+        self.reset_password_button.pack(pady=5)
 
         # submit button
         self.submit_button = tk.Button(self.root, text="Save", command=self.submit)

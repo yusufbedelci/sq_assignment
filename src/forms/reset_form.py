@@ -75,7 +75,7 @@ class OtherResetForm(UserResetForm):
 
         if validate_password(password):
             self.user_manager.reset_password(reseted_user, password)
-            messagebox.showinfo("Information", "User temp password has been set.")
+            messagebox.showinfo("Information", "User temporary password has been set.")
             self.user_manager.reset_password_status(reseted_user, True)
             self.logger.log_activity(
                 self.sender,

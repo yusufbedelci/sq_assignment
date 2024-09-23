@@ -42,7 +42,7 @@ class App:
         self.root.option_add("*Label*foreground", "white")
 
         self.user = None
-        self.create_login_screen()
+        self.view_login_screen()
 
     def run(self):
         self.root.mainloop()
@@ -54,7 +54,10 @@ class App:
         self.member_manager.initialize()
         self.profile_manager.initialize()
 
-    def create_login_screen(self):
+    #
+    # Views
+    #
+    def view_login_screen(self):
         self.clear_screen()
         title_label = tk.Label(
             self.root, text="Login", font=("Arial", 16, "bold"), bg="RoyalBlue4"
@@ -77,209 +80,9 @@ class App:
         self.login_button = tk.Button(self.root, text="Login", command=self.login)
         self.login_button.pack(pady=20, padx=100)
 
-    def logout(self):
-        self.user = None
-        self.create_login_screen()
-
-    def clear_screen(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
-
-    def make_frames(self):
-        self.left_frame = tk.Frame(self.root, width=400, height=100, bg="RoyalBlue2")
-        self.left_frame.grid(row=0, column=0, padx=20, pady=50)
-
-        self.right_frame = tk.Frame(self.root, width=1000, height=100, bg="RoyalBlue2")
-        self.right_frame.grid(row=0, column=1, padx=20, pady=50)
-
-    def login(self):
-        username = self.username_entry.get()
-        password = self.password_entry.get()
-        user = self.user_manager.login(username, password)
-
-        if user:
-            self.user = user
-            self.user_manager.update_last_login(user)
-            if user.reset_password == 1:
-                reset_form = UserResetForm(
-                    self.root,
-                    App.config,
-                    App.logger,
-                    self.user,
-                    self.create_login_screen,
-                )
-                reset_form.show_form(self.user, self.user.username)
-
-            else:
-                App.logger.log_activity(
-                    self.user, "Login", "Login was sucessfull", False
-                )
-
-                # send user to default page (based on role)
-                if (
-                    self.user.role == User.Role.SUPER_ADMIN.value
-                    or self.user.role == User.Role.SYSTEM_ADMIN.value
-                ):
-                    critical_logs = App.logger.get_critical_logs(self.user.last_login)
-                    print(critical_logs)
-                    if len(critical_logs) > 0:
-                        messagebox.showwarning(
-                            "Critical log warning",
-                            "There are some critical logs to review",
-                        )
-                        self.view_logs()
-                    else:
-                        self.view_users()
-
-                elif self.user.role == User.Role.CONSULTANT.value:
-                    self.view_members()
-        else:
-            self.login_attempts += 1
-            App.logger.log_activity(
-                user,
-                "Login failed",
-                f"username: {username} is used for a login attempt with a wrong password",
-                False,
-            )
-            if self.login_attempts >= 3:
-                App.logger.log_activity(
-                    self.user,
-                    "Unsuccesfull Login",
-                    f"Multiple usernames and passwords are tried in a row",
-                    True,
-                )
-
-            messagebox.showerror("Login Failed", "Invalid username or password")
-
-    #
-    # Navbar screens
-    #
-    def create_navbar(self, role, current_page):
-        def handle_options(option):
-            if option == "Logs":
-                self.view_logs()
-            elif option == "Users":
-                self.view_users()
-
-            elif option == "Members":
-                self.view_members()
-            elif option == "Reset password":
-                self.view_password_reset_screen()
-            elif option == "Reset my password":
-                self.reset_my_password()
-            elif option == "Backups":
-                self.view_backups()
-            elif option == "Logout":
-                self.logout()
-
-        label = tk.Label(
-            self.left_frame, text="Super Admin Panel", fg="white", bg="RoyalBlue2"
-        )
-        label.pack()
-
-        # print list of menu options
-        menu_options = [
-            "Logs",
-            "Users",
-            "Members",
-            "Reset password",
-            "Reset my password",
-            "Backups",
-            "Logout",
-        ]
-
-        if role == User.Role.CONSULTANT.value:
-            menu_options = menu_options[2:]
-
-        for i, option in enumerate(menu_options):
-            if current_page == option:
-                button = tk.Button(
-                    self.left_frame,
-                    text=option,
-                    width=10,
-                    fg="blue",
-                    command=lambda option=option: handle_options(option),
-                )
-            else:
-                button = tk.Button(
-                    self.left_frame,
-                    text=option,
-                    width=10,
-                    command=lambda option=option: handle_options(option),
-                )
-
-            button.pack(pady=10, padx=10)
-
-    def view_password_reset_screen(self):
-        self.clear_screen()
-        self.make_frames()
-        self.create_navbar(self.user.role, "Reset password")
-
-        reset_form = OtherResetForm(
-            self.right_frame, App.config, App.logger, self.user, self.correct_menu()
-        )
-        tree = ttk.Treeview(
-            self.right_frame, columns=("Username", "Role", "Reset"), show="headings"
-        )
-
-        def on_username_click(event):
-            item = tree.selection()[0]
-            username = tree.item(item, "values")[0]
-            reset_form.show_form(self.user, username)
-
-        users_list = self.user_manager.get_users()
-        users = []
-        for user in users_list:
-            if (
-                self.user.role == User.Role.SUPER_ADMIN.value
-                and user.role != User.Role.SUPER_ADMIN.value
-            ):
-                users.append(user)
-            elif (
-                self.user.role == User.Role.SYSTEM_ADMIN.value
-                and user.role != User.Role.SUPER_ADMIN.value
-                and user.role != User.Role.SYSTEM_ADMIN.value
-            ):
-                users.append(user)
-
-        for user in users:
-            username = user.username
-            role = user.role
-            reset = user.reset_password
-            tree.insert("", "end", values=(username, role, reset))
-        tree.heading("Username", text="Username")
-        tree.heading("Role", text="Role")
-        tree.heading("Reset", text="Reset")
-        tree.pack(padx=10, pady=10)
-        tree.bind("<Double-1>", on_username_click)
-
-        # home button
-        self.home_button = tk.Button(
-            self.right_frame, text="🏠", command=self.correct_menu()
-        )
-        self.home_button.pack(pady=5)
-
-    def reset_my_password(self):
-        self.clear_screen()
-        self.make_frames()
-        self.create_navbar(self.user.role, "Reset my password")
-
-        reset_form = UserResetForm(
-            self.right_frame,
-            App.config,
-            App.logger,
-            self.user,
-            self.create_login_screen,
-        )
-        reset_form.show_form(self.user.username)
-
-    #
-    # generic screens
-    #
     def view_logs(self):
-        self.clear_screen()
-        self.make_frames()
-        self.create_navbar(self.user.role, "Logs")
+        self.authorize(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
+        self.create_view(self.user.role, "Logs")
 
         title_label = tk.Label(
             self.right_frame,
@@ -290,6 +93,9 @@ class App:
         title_label.pack(pady=10)
 
         def on_log_click(event):
+            self.authorize(
+                allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
+            )
             item = tree.selection()[0]
             no = tree.item(item, "values")[0]
             datetime = tree.item(item, "values")[1]
@@ -351,9 +157,8 @@ class App:
                 )
 
     def view_users(self):
-        self.clear_screen()
-        self.make_frames()
-        self.create_navbar(self.user.role, "Users")
+        self.authorize(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
+        self.create_view(self.user.role, "Users")
 
         title_label = tk.Label(
             self.right_frame,
@@ -364,6 +169,9 @@ class App:
         title_label.pack(pady=10)
 
         def on_username_click(event):
+            self.authorize(
+                allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
+            )
             item = tree.selection()[0]
             username = tree.item(item, "values")[0]
             role = tree.item(item, "values")[1]
@@ -379,6 +187,7 @@ class App:
                 App.logger,
                 self.user,
                 self.view_users,
+                self.view_password_reset,
             )
             update_form.show_form(username)
 
@@ -424,9 +233,14 @@ class App:
             tree.insert("", "end", values=(username, role))
 
     def view_members(self):
-        self.clear_screen()
-        self.make_frames()
-        self.create_navbar(self.user.role, "Members")
+        self.authorize(
+            allowed_roles=(
+                User.Role.SUPER_ADMIN,
+                User.Role.SYSTEM_ADMIN,
+                User.Role.CONSULTANT,
+            )
+        )
+        self.create_view(self.user.role, "Members")
 
         title_label = tk.Label(
             self.right_frame, text="Manage members", font=("Arial", 16, "bold")
@@ -455,11 +269,21 @@ class App:
         button.pack(side="top", anchor="w", pady=(20, 0), padx=10)
 
         button = tk.Button(
-            self.right_frame, text="🔍", width=10, command=lambda: go_search()
+            self.right_frame,
+            text="🔍",
+            width=10,
+            command=lambda: self.view_members_search(),
         )
         button.pack(side="right", anchor="w", pady=(20, 0), padx=10)
 
         def on_member_click(event):
+            self.authorize(
+                allowed_roles=(
+                    User.Role.SUPER_ADMIN,
+                    User.Role.SYSTEM_ADMIN,
+                    User.Role.CONSULTANT,
+                )
+            )
             item = tree.selection()[0]
             id = tree.item(item, "values")[0]
             update_form = UpdateMemberForm(
@@ -485,28 +309,25 @@ class App:
             last_name = member.last_name
             tree.insert("", "end", values=(id, first_name, last_name))
 
-        def go_search():
-            self.clear_screen()
-            self.make_frames()
-            self.create_navbar(self.user.role, "Members")
-
-            title_label = tk.Label(
-                self.right_frame, text="Search members", font=("Arial", 16, "bold")
+    def view_members_search(self):
+        self.authorize(
+            allowed_roles=(
+                User.Role.SUPER_ADMIN,
+                User.Role.SYSTEM_ADMIN,
+                User.Role.CONSULTANT,
             )
-            title_label.pack(pady=10)
+        )
+        self.create_view(self.user.role, "Members")
 
-            search_field = tk.Entry(self.right_frame, width=50)
-            search_field.pack(pady=10, padx=25)
+        title_label = tk.Label(
+            self.right_frame, text="Search members", font=("Arial", 16, "bold")
+        )
+        title_label.pack(pady=10)
 
-            search_button = tk.Button(
-                self.right_frame, text="Search", command=handle_search
-            )
-            search_button.pack(pady=5, padx=20)
+        search_field = tk.Entry(self.right_frame, width=50)
+        search_field.pack(pady=10, padx=25)
 
         def handle_search():
-            search_field = tk.Entry(self.right_frame, width=50)
-            search_field.pack(pady=10, padx=25)
-
             search_results = self.member_manager.search_members(search_field.get())
 
             self.clear_screen()
@@ -550,10 +371,51 @@ class App:
             )
             self.back_button.pack(pady=5)
 
+        search_button = tk.Button(
+            self.right_frame, text="Search", command=handle_search
+        )
+        search_button.pack(pady=5, padx=20)
+
+    def view_password_reset(self, username):
+        self.authorize(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
+        if (
+            self.user.role == User.Role.SYSTEM_ADMIN.value
+            and self.user_manager.get_user(username).role
+            != (User.Role.CONSULTANT.value)
+        ):
+            messagebox.showerror(
+                "Unauthorized", "You are not authorized to reset this user's password."
+            )
+            return self.view_users()
+
+        self.create_view(self.user.role, "Users")
+        reset_form = OtherResetForm(
+            self.right_frame, App.config, App.logger, self.user, self.view_users
+        )
+        reset_form.show_form(username)
+
+    def view_my_password_reset(self):
+        self.authorize(
+            allowed_roles=(
+                User.Role.SUPER_ADMIN,
+                User.Role.SYSTEM_ADMIN,
+                User.Role.CONSULTANT,
+            )
+        )
+        self.create_view(self.user.role, "Reset my password")
+
+        reset_form = UserResetForm(
+            self.right_frame,
+            App.config,
+            App.logger,
+            self.user,
+            self.view_login_screen,
+        )
+        reset_form.show_form(self.user.username)
+
     def view_backups(self):
-        self.clear_screen()
-        self.make_frames()
-        self.create_navbar(self.user.role, "Backups")
+        self.authorize(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
+        self.create_view(self.user.role, "Backups")
 
         title_label = tk.Label(
             self.right_frame, text="Backup options: ", font=("Arial", 20, "bold")
@@ -582,6 +444,9 @@ class App:
         tree = ttk.Treeview(self.right_frame, columns=("Back up"), show="headings")
 
         def on_backup_click(event):
+            self.authorize(
+                allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
+            )
             item = tree.selection()[0]
             backup = tree.item(item, "values")[0]
             self.backup_manager.restore(backup)
@@ -594,12 +459,173 @@ class App:
         tree.bind("<Double-1>", on_backup_click)
 
     #
-    # Helper functions
+    # Layout functions
     #
-    def correct_menu(self):
-        if self.user.role == User.Role.SUPER_ADMIN.value:
-            return self.view_users
-        elif self.user.role == User.Role.SYSTEM_ADMIN.value:
-            return self.view_users
-        elif self.user.role == User.Role.CONSULTANT.value:
-            return self.view_members
+    def clear_screen(self):
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+    def make_frames(self):
+        self.left_frame = tk.Frame(self.root, width=400, height=100, bg="RoyalBlue2")
+        self.left_frame.grid(row=0, column=0, padx=20, pady=50)
+
+        self.right_frame = tk.Frame(self.root, width=1000, height=100, bg="RoyalBlue2")
+        self.right_frame.grid(row=0, column=1, padx=20, pady=50)
+
+    def create_navbar(self, role, current_page):
+        def handle_options(option):
+            if option == "Logs":
+                self.view_logs()
+            elif option == "Users":
+                self.view_users()
+
+            elif option == "Members":
+                self.view_members()
+            elif option == "Reset my password":
+                self.view_my_password_reset()
+            elif option == "Backups":
+                self.view_backups()
+            elif option == "Logout":
+                self.logout()
+
+        # print list of menu options
+        menu_options = [
+            "Logs",
+            "Users",
+            "Members",
+            "Reset my password",
+            "Backups",
+            "Logout",
+        ]
+
+        greet_user_text = tk.Label(
+            self.left_frame,
+            text=f"Hello, {self.user.username}",
+            fg="white",
+            bg="RoyalBlue2",
+            font=("Arial", 14, "bold"),
+        )
+        greet_user_text.pack()
+
+        if role == User.Role.CONSULTANT.value:
+            menu_options = menu_options[2:]
+
+        for i, option in enumerate(menu_options):
+            if current_page == option:
+                button = tk.Button(
+                    self.left_frame,
+                    text=option,
+                    width=10,
+                    fg="blue",
+                    command=lambda option=option: handle_options(option),
+                )
+            else:
+                button = tk.Button(
+                    self.left_frame,
+                    text=option,
+                    width=10,
+                    command=lambda option=option: handle_options(option),
+                )
+
+            button.pack(pady=10, padx=10)
+
+    def create_view(self, role, current_page):
+        self.clear_screen()
+        self.make_frames()
+        self.create_navbar(role, current_page)
+
+    #
+    # Authentication
+    #
+    def login(self):
+        username = self.username_entry.get()
+        password = self.password_entry.get()
+        user = self.user_manager.login(username, password)
+
+        if user:
+            self.user = user
+            self.user_manager.update_last_login(user)
+            if user.reset_password == 1:
+                reset_form = UserResetForm(
+                    self.root,
+                    App.config,
+                    App.logger,
+                    self.user,
+                    self.view_login_screen,
+                )
+                reset_form.show_form(self.user.username)
+
+            else:
+                App.logger.log_activity(
+                    self.user, "Login", "Login was sucessfull", False
+                )
+
+                # send user to default page (based on role)
+                if (
+                    self.user.role == User.Role.SUPER_ADMIN.value
+                    or self.user.role == User.Role.SYSTEM_ADMIN.value
+                ):
+                    critical_logs = App.logger.get_critical_logs(self.user.last_login)
+                    print(critical_logs)
+                    if len(critical_logs) > 0:
+                        messagebox.showwarning(
+                            "Critical log warning",
+                            "There are some critical logs to review",
+                        )
+                        self.view_logs()
+                    else:
+                        self.view_users()
+
+                elif self.user.role == User.Role.CONSULTANT.value:
+                    self.view_members()
+        else:
+            self.login_attempts += 1
+            App.logger.log_activity(
+                user,
+                "Login failed",
+                f"username: {username} is used for a login attempt with a wrong password",
+                False,
+            )
+            if self.login_attempts >= 3:
+                App.logger.log_activity(
+                    self.user,
+                    "Unsuccesfull Login",
+                    f"Multiple usernames and passwords are tried in a row",
+                    True,
+                )
+
+            messagebox.showerror("Login Failed", "Invalid username or password")
+
+    def logout(self):
+        self.user = None
+        self.view_login_screen()
+
+    #
+    # Authorization functions
+    #
+    def authorize(self, allowed_roles: tuple[User.Role]):
+        """
+        User is authorized if:
+        1. self.user is not None
+        2. self.user still exists in database
+        3. self.user.role is still same as in database
+        4. self.user.role is in allowed_roles
+        """
+
+        allowed_roles = (role.value for role in allowed_roles)
+        if (
+            self.user is not None
+            and self.user_manager.get_user(self.user.username) is not None
+            and self.user_manager.get_user(self.user.username).role == self.user.role
+            and self.user.role in allowed_roles
+        ):
+            return
+
+        if self.user.role not in allowed_roles:
+            messagebox.showerror(
+                "Unauthorized", "You are not authorized to view this page."
+            )
+            # send to default page
+
+        messagebox.showerror("Something went wrong", "Please log in again.")
+        self.logout()
