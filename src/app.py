@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 import tkinter as tk
 from tkinter import ttk
@@ -32,6 +33,7 @@ class App:
         self.profile_manager = ProfileManager(config)
 
         self.login_attempts = 0
+        self.timeout = False
         self.init_db()
 
         self.root.title("Login")
@@ -58,6 +60,19 @@ class App:
         # self.member_manager.seed_members()
         # self.address_manager.seed_addresses()
         # self.profile_manager.seed_profiles()
+
+    
+    def start_timeout(self):
+        self.timeout = True
+        messagebox.showwarning("Warning", "Too many attempts. Please wait 2 minutes.")
+        # Disable the login button during the timeout period
+        self.login_button.config(state=tk.DISABLED)
+        self.root.after(120000, self.end_timeout) 
+
+    def end_timeout(self):
+        self.timeout = False
+        self.login_button.config(state=tk.NORMAL)
+        self.login_attempts=0
 
     #
     # Views
@@ -571,7 +586,6 @@ class App:
                     or self.user.role == User.Role.SYSTEM_ADMIN.value
                 ):
                     critical_logs = App.logger.get_critical_logs(self.user.last_login)
-                    print(critical_logs)
                     if len(critical_logs) > 0:
                         messagebox.showwarning(
                             "Critical log warning",
@@ -591,13 +605,14 @@ class App:
                 f"username: {username} is used for a login attempt with a wrong password",
                 False,
             )
-            if self.login_attempts >= 3:
+            if self.login_attempts == 3:
                 App.logger.log_activity(
                     self.user,
                     "Unsuccesfull Login",
                     f"Multiple usernames and passwords are tried in a row",
                     True,
                 )
+                self.start_timeout()
 
             messagebox.showerror("Login Failed", "Invalid username or password")
 
