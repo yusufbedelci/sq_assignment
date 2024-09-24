@@ -513,7 +513,7 @@ class App:
         greet_user_text.pack()
 
         if role == User.Role.CONSULTANT.value:
-            menu_options = menu_options[2:]
+            menu_options = [option for option in menu_options if option != "Backups"]
 
         for i, option in enumerate(menu_options):
             if current_page == option:
