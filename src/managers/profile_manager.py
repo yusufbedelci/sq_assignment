@@ -28,6 +28,60 @@ class ProfileManager(BaseManager):
         finally:
             cursor.close()
 
+    def seed_profiles(self):
+        profiles = [
+            {
+                "id": 2,
+                "first_name": "Jason",
+                "last_name": "Wang",
+            },
+            {
+                "id": 3,
+                "first_name": "Emily",
+                "last_name": "Jansen",
+            },
+            {
+                "id": 4,
+                "first_name": "David",
+                "last_name": "De Vries",
+            },
+            {
+                "id": 5,
+                "first_name": "Sarah",
+                "last_name": "Meijer",
+            },
+        ]
+
+        for profile in profiles:
+            encrypted_first_name = rsa_encrypt(
+                profile["first_name"], self.config.public_key
+            )
+            encrypted_last_name = rsa_encrypt(
+                profile["last_name"], self.config.public_key
+            )
+            encrypted_registration_date = rsa_encrypt(
+                generate_registration_date(), self.config.public_key
+            )
+
+            SQL_CREATE_USER_PROFILES = f"INSERT INTO profiles (first_name, last_name, registration_date, user_id) VALUES (?, ?, ?, ?);"
+            try:
+                cursor = self.config.con.cursor()
+                print(profile["id"])
+                cursor.execute(
+                    SQL_CREATE_USER_PROFILES,
+                    (
+                        encrypted_first_name,
+                        encrypted_last_name,
+                        encrypted_registration_date,
+                        profile["id"],
+                    ),
+                )
+
+                self.config.con.commit()
+
+            finally:
+                cursor.close()
+
     def get_profiles(self) -> list[Profile]:
         SQL_SELECT_PROFILES = "SELECT * FROM profiles;"
         try:

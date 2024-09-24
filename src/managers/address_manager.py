@@ -28,6 +28,54 @@ class AddressManager(BaseManager):
         finally:
             cursor.close()
 
+    def seed_addresses(self):
+        addresses = [
+            {
+                "street_name": "Langestraat",
+                "house_number": "12A",
+                "zip_code": "1234 AB",
+                "city": "Amsterdam",
+                "member_id": 1,
+            },
+            {
+                "street_name": "Hoofdweg",
+                "house_number": "34",
+                "zip_code": "2345 BC",
+                "city": "Utrecht",
+                "member_id": 2,
+            },
+        ]
+
+        for address in addresses:
+            encrypted_street_name = rsa_encrypt(
+                address["street_name"], self.config.public_key
+            )
+            encrypted_house_number = rsa_encrypt(
+                address["house_number"], self.config.public_key
+            )
+            encrypted_zip_code = rsa_encrypt(
+                address["zip_code"], self.config.public_key
+            )
+            encrypted_city = rsa_encrypt(address["city"], self.config.public_key)
+
+            SQL_CREATE_ADDRESSES = "INSERT INTO addresses (street_name, house_number, zip_code, city, member_id) VALUES (?, ?, ?, ?, ?);"
+
+            try:
+                cursor = self.config.con.cursor()
+                cursor.execute(
+                    SQL_CREATE_ADDRESSES,
+                    (
+                        encrypted_street_name,
+                        encrypted_house_number,
+                        encrypted_zip_code,
+                        encrypted_city,
+                        f"{address['member_id']}",
+                    ),
+                )
+                self.config.con.commit()
+            finally:
+                cursor.close()
+
     def get_addresses(self) -> list[Address]:
         SQL_SELECT_ADDRESSES = "SELECT * FROM addresses;"
         try:

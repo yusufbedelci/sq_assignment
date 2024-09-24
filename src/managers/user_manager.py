@@ -3,7 +3,11 @@ import os
 import hashlib
 
 from config import Config
-from utils import rsa_encrypt, rsa_decrypt, datetime_to_string
+from utils import (
+    rsa_encrypt,
+    rsa_decrypt,
+    datetime_to_string,
+)
 from managers.base_manager import BaseManager
 from entities.user import User
 
@@ -63,6 +67,71 @@ class UserManager(BaseManager):
             self.config.con.commit()
         finally:
             cursor.close()
+
+    def seed_test_users(self):
+        users = [
+            {
+                "id": 2,
+                "username": "jasonw12",
+                "password": "Pa$$w0rd1234",
+                "role": User.Role.CONSULTANT,
+            },
+            {
+                "id": 3,
+                "username": "emilyj34",
+                "password": "Pa$$w0rd1234",
+                "role": User.Role.CONSULTANT,
+            },
+            {
+                "id": 4,
+                "username": "davidd56",
+                "password": "Pa$$w0rd1234",
+                "role": User.Role.SYSTEM_ADMIN,
+            },
+            {
+                "id": 5,
+                "username": "sarahm78",
+                "password": "Pa$$w0rd1234",
+                "role": User.Role.SYSTEM_ADMIN,
+            },
+        ]
+
+        
+
+        for user in users:
+
+            # user accounts
+            password = self.hash_and_salt(f'{user["password"]}')
+            encrypted_username = rsa_encrypt(
+                f'{user["username"]}', self.config.public_key
+            )
+            encrypted_password = rsa_encrypt(password, self.config.public_key)
+            encrypted_role = rsa_encrypt(user["role"].value, self.config.public_key)
+            encrypted_last_login = rsa_encrypt(
+                datetime_to_string(datetime.now()), self.config.public_key
+            )
+
+            
+
+            SQL_CREATE_USERS = f"INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);"
+
+            try:
+                cursor = self.config.con.cursor()
+                cursor.execute(
+                    SQL_CREATE_USERS,
+                    (
+                        encrypted_username,
+                        encrypted_password,
+                        encrypted_role,
+                        encrypted_last_login,
+                    ),
+                )
+
+                
+                self.config.con.commit()
+
+            finally:
+                cursor.close()
 
     def login(self, username, password):
         user = self.get_user(username)

@@ -37,6 +37,82 @@ class MemberManager(BaseManager):
         finally:
             cursor.close()
 
+    def seed_members(self):
+        members = [
+            {
+                "id": 1,
+                "first_name": "Johan",
+                "last_name": "de Vries",
+                "age": 34,
+                "gender": "M",
+                "weight": 78,
+                "email": "johan.devries@uniquemeal.nl",
+                "phone_number": "0612345678",
+            },
+            {
+                "id": 2,
+                "first_name": "Emma",
+                "last_name": "Jansen",
+                "age": 28,
+                "gender": "F",
+                "weight": 62,
+                "email": "emma.jansen@uniquemeal.nl",
+                "phone_number": "0687654321",
+            },
+        ]
+
+        for member in members:
+            encrypted_firstname = rsa_encrypt(
+                f'{member["first_name"]}', self.config.public_key
+            )
+            encrypted_lastname = rsa_encrypt(
+                f'{member["last_name"]}', self.config.public_key
+            )
+            encrypted_age = rsa_encrypt(f'{member["age"]}', self.config.public_key)
+            encrypted_weight = rsa_encrypt(
+                f'{member["weight"]}', self.config.public_key
+            )
+
+            encrypted_email = rsa_encrypt(f'{member["email"]}', self.config.public_key)
+
+            encrypted_phone_number = rsa_encrypt(
+                f'{member["phone_number"]}', self.config.public_key
+            )
+            encrypted_gender = rsa_encrypt(
+                f'{member["gender"]}', self.config.public_key
+            )
+
+            registration_date = generate_registration_date()
+
+            encrypted_registration_date = rsa_encrypt(
+                registration_date, self.config.public_key
+            )
+            encrypted_membership_id = rsa_encrypt(
+                generate_membership_id(registration_date), self.config.public_key
+            )
+
+            SQL_CREATE_MEMBERS = f"INSERT OR IGNORE INTO members (first_name, last_name, age,gender,weight,email,phone_number, registration_date, membership_id) VALUES (?, ?, ?, ?,?, ?,?, ?,?);"
+
+            try:
+                cursor = self.config.con.cursor()
+                cursor.execute(
+                    SQL_CREATE_MEMBERS,
+                    (
+                        encrypted_firstname,
+                        encrypted_lastname,
+                        encrypted_age,
+                        encrypted_gender,
+                        encrypted_weight,
+                        encrypted_email,
+                        encrypted_phone_number,
+                        encrypted_registration_date,
+                        encrypted_membership_id,
+                    ),
+                )
+                self.config.con.commit()
+            finally:
+                cursor.close()
+
     def get_members(self) -> list[Member]:
         SQL_SELECT_MEMBERS = "SELECT * FROM members;"
         try:
