@@ -69,11 +69,13 @@ def validate_house_number(house_number):
         return True
     return False
 
+  
 def validate_zip_code(zip_code):
     pattern = r"^[1-9][0-9]{3}\s?[a-zA-Z]{2}$"
     if re.match(pattern, zip_code) and "\x00" not in zip_code:
         return True
     return False
+
 
 def validate_server_input(option, options):
     if option in options:
