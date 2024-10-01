@@ -62,6 +62,8 @@ class MemberManager(BaseManager):
         ]
 
         for member in members:
+            if any(member["email"] == existing_member.email for existing_member in self.get_members()):
+                return
             encrypted_firstname = rsa_encrypt(
                 f'{member["first_name"]}', self.config.public_key
             )

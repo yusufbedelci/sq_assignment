@@ -96,9 +96,11 @@ class UserManager(BaseManager):
             },
         ]
 
-        
-
         for user in users:
+
+            if any(
+                user["username"] == existing_user.username for existing_user in self.get_users()):
+                return
 
             # user accounts
             password = self.hash_and_salt(f'{user["password"]}')
@@ -106,12 +108,12 @@ class UserManager(BaseManager):
                 f'{user["username"]}', self.config.public_key
             )
             encrypted_password = rsa_encrypt(password, self.config.public_key)
-            encrypted_role = rsa_encrypt(user["role"].value, self.config.public_key)
+            encrypted_role = rsa_encrypt(
+                user["role"].value, self.config.public_key
+            )
             encrypted_last_login = rsa_encrypt(
                 datetime_to_string(datetime.now()), self.config.public_key
             )
-
-            
 
             SQL_CREATE_USERS = f"INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);"
 
@@ -127,7 +129,6 @@ class UserManager(BaseManager):
                     ),
                 )
 
-                
                 self.config.con.commit()
 
             finally:

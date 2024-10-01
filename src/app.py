@@ -56,10 +56,10 @@ class App:
         self.member_manager.initialize()
         self.profile_manager.initialize()
 
-        # self.user_manager.seed_test_users()
-        # self.member_manager.seed_members()
-        # self.address_manager.seed_addresses()
-        # self.profile_manager.seed_profiles()
+        self.user_manager.seed_test_users()
+        self.member_manager.seed_members()
+        self.address_manager.seed_addresses()
+        self.profile_manager.seed_profiles()
 
     
     def start_timeout(self):
