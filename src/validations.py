@@ -37,7 +37,7 @@ def validate_weight(weight):
 
 
 def validate_email(email):
-    """ 
+    """
     Username part (before the @): between 1 and 64 characters.
     The domain part (after the @) to a range of between 1 and 255.
     The TLD is between 2 and 24 characters.
@@ -68,12 +68,14 @@ def validate_house_number(house_number):
     if re.match(pattern, house_number):
         return True
     return False
-    
+
+
 def validate_zip_code(zip_code):
     pattern = r"^[1-9][0-9]{3}\s?[a-zA-Z]{2}$"
     if re.match(pattern, zip_code):
         return True
     return False
+
 
 def validate_server_input(option, options):
     if option in options:

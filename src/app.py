@@ -2,17 +2,17 @@ from datetime import datetime
 import os
 import tkinter as tk
 from tkinter import ttk
+from functools import wraps
 from config import Config
 from tkinter import messagebox
-from forms.reset_form import OtherResetForm, UserResetForm
+from entities.address import Address
 from managers.address_manager import AddressManager
 from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
 from managers.user_manager import UserManager
 from backups import Backups
 
-from forms.user_forms import *
-from forms.member_forms import *
+from validations import *
 from entities.user import User
 from entities.member import Member
 from app_logger import AppLogger
@@ -56,27 +56,93 @@ class App:
         self.member_manager.initialize()
         self.profile_manager.initialize()
 
-        # self.user_manager.seed_test_users()
-        # self.member_manager.seed_members()
-        # self.address_manager.seed_addresses()
-        # self.profile_manager.seed_profiles()
+        self.user_manager.seed_test_users()
+        self.member_manager.seed_members()
+        self.address_manager.seed_addresses()
+        self.profile_manager.seed_profiles()
 
-    
     def start_timeout(self):
         self.timeout = True
         messagebox.showwarning("Warning", "Too many attempts. Please wait 2 minutes.")
         # Disable the login button during the timeout period
         self.login_button.config(state=tk.DISABLED)
-        self.root.after(120000, self.end_timeout) 
+        self.root.after(120000, self.end_timeout)
 
     def end_timeout(self):
         self.timeout = False
         self.login_button.config(state=tk.NORMAL)
-        self.login_attempts=0
+        self.login_attempts = 0
 
-    #
+    # ======================================== #
+    # Authorization functions
+    # ======================================== #
+    def is_authorized(self, allowed_roles: tuple[User.Role]) -> bool:
+        """
+        User is authorized if:
+        1. self.user is not None
+        2. self.user still exists in database
+        3. self.user.role is still same as in database
+        4. self.user.role is in allowed_roles
+        """
+        allowed_roles = (role.value for role in allowed_roles)
+        if (
+            self.user is not None
+            and self.user_manager.get_user(self.user.username) is not None
+            and self.user_manager.get_user(self.user.username).role == self.user.role
+            and self.user.role in allowed_roles
+            and self.user.reset_password == 0
+        ):
+            return True
+        return False
+
+    def is_authorized_without_password_reset(
+        self, allowed_roles: tuple[User.Role]
+    ) -> bool:
+        allowed_roles = (role.value for role in allowed_roles)
+        if (
+            self.user is not None
+            and self.user_manager.get_user(self.user.username) is not None
+            and self.user_manager.get_user(self.user.username).role == self.user.role
+            and self.user.role in allowed_roles
+        ):
+            return True
+        return False
+
+    def handle_unauthorized(self, allowed_roles: tuple[User.Role]):
+        """
+        Handle unauthorized access
+        """
+        if self.user.role not in allowed_roles:
+            messagebox.showerror(
+                "Unauthorized", "You are not authorized to view this page."
+            )
+            # send to default page
+            if self.user.role == User.Role.SUPER_ADMIN.value:
+                self.view_users()
+            elif self.user.role == User.Role.SYSTEM_ADMIN.value:
+                self.view_users()
+            elif self.user.role == User.Role.CONSULTANT.value:
+                self.view_members()
+        else:
+            messagebox.showerror("Something went wrong", "Please log in again.")
+            self.logout()
+
+    def authorized(self, allowed_roles: tuple[User.Role], without_password_reset=False):
+        is_authorized = (
+            self.is_authorized_without_password_reset(allowed_roles)
+            if without_password_reset
+            else self.is_authorized(allowed_roles)
+        )
+        if not is_authorized:
+            self.handle_unauthorized(allowed_roles)
+            return False
+        return True
+
+    # ======================================== #
     # Views
-    #
+    # ======================================== #
+
+    # Login
     def view_login_screen(self):
         self.clear_screen()
         title_label = tk.Label(
@@ -100,8 +166,12 @@ class App:
         self.login_button = tk.Button(self.root, text="Login", command=self.login)
         self.login_button.pack(pady=20, padx=100)
 
+    # Logs
     def view_logs(self):
-        self.authorize(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
+        if not self.authorized(
+            allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
+        ):
+            return
         self.create_view(self.user.role, "Logs")
 
         title_label = tk.Label(
@@ -113,7 +183,7 @@ class App:
         title_label.pack(pady=10)
 
         def on_log_click(event):
-            self.authorize(
+            self.authorized(
                 allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
             )
             item = tree.selection()[0]
@@ -176,8 +246,12 @@ class App:
                     values=(r_id, line[1][0], line[1][1], line[1][2]),
                 )
 
+    # Users (& Consultants)
     def view_users(self):
-        self.authorize(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
+        if not self.authorized(
+            allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
+        ):
+            return
         self.create_view(self.user.role, "Users")
 
         title_label = tk.Label(
@@ -189,27 +263,21 @@ class App:
         title_label.pack(pady=10)
 
         def on_username_click(event):
-            self.authorize(
+            self.authorized(
                 allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
             )
             item = tree.selection()[0]
-            username = tree.item(item, "values")[0]
-            role = tree.item(item, "values")[1]
-            if (
+            selected_user_username = tree.item(item, "values")[0]
+            selected_user_role = tree.item(item, "values")[1]
+            if self.user.role == User.Role.SUPER_ADMIN.value:
+                return self.view_user_update(selected_user_username)
+            elif (
                 self.user.role == User.Role.SYSTEM_ADMIN.value
-                and role == User.Role.SYSTEM_ADMIN.value
+                and selected_user_role == User.Role.CONSULTANT.value
             ):
+                return self.view_consultant_update(selected_user_username)
+            else:
                 return
-
-            update_form = UpdateUserForm(
-                self.right_frame,
-                App.config,
-                App.logger,
-                self.user,
-                self.view_users,
-                self.view_password_reset,
-            )
-            update_form.show_form(username)
 
         description_label = tk.Label(
             self.right_frame,
@@ -218,21 +286,15 @@ class App:
         )
         description_label.pack()
 
-        def add_new_user():
-            form = CreateUserForm(
-                self.right_frame,
-                App.config,
-                App.logger,
-                self.user,
-                self.view_users,
-            )
-            form.show_form()
-
         button = tk.Button(
             self.right_frame,
             text="Add new",
             width=10,
-            command=lambda: add_new_user(),
+            command=lambda: (
+                self.view_user_create()
+                if self.user.role == User.Role.SUPER_ADMIN.value
+                else self.view_consultant_create()
+            ),
         )
         button.pack(side="top", anchor="w", pady=(20, 0), padx=10)
 
@@ -252,14 +314,528 @@ class App:
             role = user.role
             tree.insert("", "end", values=(username, role))
 
+    def view_user_create(self):
+        if not self.authorized(allowed_roles=(User.Role.SUPER_ADMIN,)):
+            return
+        self.create_view(self.user.role, "Users")
+
+        def submit():
+            if not self.authorized(allowed_roles=(User.Role.SUPER_ADMIN,)):
+                return
+            username = username_entry.get()
+            password = password_entry.get()
+            first_name = first_name_entry.get()
+            last_name = last_name_entry.get()
+            role = role_combobox.get()
+
+            errors = []
+            if not validate_username(username):
+                errors.append("Username is not valid.")
+
+            if not validate_password(password):
+                errors.append("Password is not valid.")
+
+            if not validate_name(first_name):
+                errors.append("First name has to be between 2 and 20 characters.")
+
+            if not validate_name(last_name):
+                errors.append("Last name has to be between 2 and 20 characters.")
+
+            if not validate_server_input(role, choosable_roles):
+                errors.append("Role is not valid, incident will be logged.")
+                App.logger.log_activity(
+                    self.user,
+                    "Server-side input is modified.",
+                    f"Role was not valid: {role}",
+                    True,
+                )
+
+            if not self.user_manager.is_available_username(username):
+                errors.append("Username is already taken.")
+
+            if len(errors) == 0:
+                user = self.user_manager.create_user(username, password, role)
+                App.logger.log_activity(
+                    self.user,
+                    "created user",
+                    f"with username: {user.username}",
+                    False,
+                )
+
+                if user is not None:
+                    profile = self.profile_manager.create_profile(
+                        first_name, last_name, user.id
+                    )
+                    if profile is not None:
+                        messagebox.showinfo("Information", f"User has been created.")
+                        self.view_users()
+            else:
+                messages = "\n".join(errors)
+                messagebox.showinfo("Information", messages)
+
+        # Create a title label
+        title_label = tk.Label(
+            self.right_frame, text="Add new User", font=("Arial", 16, "bold")
+        )
+        title_label.pack(pady=10)
+
+        # username
+        username_label = tk.Label(
+            self.right_frame, text="Please enter the new username", font=("Arial", 12)
+        )
+        username_label.pack(pady=5, padx=25)
+        username_entry = tk.Entry(self.right_frame, width=100)
+        username_entry.pack(pady=5, padx=25)
+
+        # password
+        password_label = tk.Label(
+            self.right_frame, text="Please enter the new password", font=("Arial", 12)
+        )
+        password_label.pack(pady=5, padx=25)
+        password_entry = tk.Entry(self.right_frame, show="*", width=100)
+        password_entry.pack(pady=5, padx=25)
+
+        # first name
+        first_name_label = tk.Label(
+            self.right_frame, text="Please enter the first name", font=("Arial", 12)
+        )
+        first_name_label.pack(pady=5, padx=25)
+        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry.pack(pady=5, padx=25)
+
+        # last name
+        last_name_label = tk.Label(
+            self.right_frame, text="Please enter the last name", font=("Arial", 12)
+        )
+        last_name_label.pack(pady=5, padx=25)
+        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry.pack(pady=5, padx=25)
+
+        # role
+        choosable_roles = (User.Role.SYSTEM_ADMIN.value, User.Role.CONSULTANT.value)
+        role_label = tk.Label(self.right_frame, text="Role", font=("Arial", 12))
+        role_label.pack(pady=5, padx=25)
+        role_combobox = ttk.Combobox(self.right_frame, values=choosable_roles)
+        role_combobox.set(choosable_roles[0])
+        role_combobox.pack(pady=5, padx=25)
+
+        # submit button
+        submit_button = tk.Button(self.right_frame, text="Save", command=submit)
+        submit_button.pack(pady=20)
+
+        # back button
+        back_button = tk.Button(
+            self.right_frame, text="Cancel", command=self.view_users
+        )
+        back_button.pack(pady=20)
+
+    def view_user_update(self, username):
+        if not self.authorized(allowed_roles=(User.Role.SUPER_ADMIN,)):
+            return
+        self.create_view(self.user.role, "Users")
+
+        def submit():
+            if not self.authorized(allowed_roles=(User.Role.SUPER_ADMIN,)):
+                return
+            current_username = current_username_entry.get()
+            new_first_name = first_name_entry.get()
+            new_last_name = last_name_entry.get()
+            role = role_combobox.get()
+
+            try:
+                user_to_update = self.user_manager.get_user(current_username)
+                if user_to_update is not None:
+                    errors = []
+                    if not validate_name(new_first_name):
+                        errors.append(
+                            "First name has to be between 2 and 20 characters."
+                        )
+
+                    if not validate_name(new_last_name):
+                        errors.append(
+                            "Last name has to be between 2 and 20 characters."
+                        )
+
+                    if not validate_server_input(role, choosable_roles):
+                        errors.append("Role is not valid, incident will be logged.")
+                        App.logger.log_activity(
+                            self.user,
+                            "Server-side input is modified.",
+                            f"Role was not valid: {role}",
+                            True,
+                        )
+
+                    if len(errors) == 0:
+                        self.user_manager.update_user(
+                            user_to_update, current_username, role
+                        )
+                        updated_user = self.user_manager.get_user(current_username)
+                        if updated_user is not None:
+                            profile_to_update = self.profile_manager.get_profile(
+                                user_to_update.id
+                            )
+                            updated_profile = self.profile_manager.update_profile(
+                                profile_to_update, new_first_name, new_last_name
+                            )
+                            if updated_profile is not None:
+                                messagebox.showinfo(
+                                    "Information", "User has been updated successfully."
+                                )
+                                App.logger.log_activity(
+                                    self.user,
+                                    "updated user",
+                                    f"with username: {updated_user.username}",
+                                    False,
+                                )
+                                self.view_users()
+                        else:
+                            messagebox.showerror(
+                                "Error", "Failed to retrieve updated user."
+                            )
+                    else:
+                        messages = "\n".join(errors)
+                        messagebox.showerror("Information", messages)
+                else:
+                    messagebox.showerror("Error", "User not found.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to update user: {str(e)}")
+
+        def delete():
+            if not self.authorized(allowed_roles=(User.Role.SUPER_ADMIN,)):
+                return
+            current_username = current_username_entry.get()
+            user = self.user_manager.get_user(current_username)
+            self.user_manager.delete_user(user)
+            messagebox.showinfo("Information", "User has been deleted.")
+
+            App.logger.log_activity(
+                self.user, "deleted user", f"with username: {user.username}", False
+            )
+            self.view_users()
+
+        # Get user and profile
+        updated_user = self.user_manager.get_user(username)
+        updated_profile = self.profile_manager.get_profile(updated_user.id)
+
+        # Create a title label
+        title_label = tk.Label(
+            self.right_frame, text=f"Update User", font=("Arial", 16, "bold")
+        )
+        title_label.pack(pady=10)
+
+        # username
+        current_username_label = tk.Label(
+            self.right_frame, text="Current Username", font=("Arial", 12)
+        )
+        current_username_label.pack(pady=5, padx=25)
+        current_username_entry = tk.Entry(self.right_frame, width=100)
+        current_username_entry.insert(0, updated_user.username)
+        current_username_entry.config(state="readonly")
+        current_username_entry.pack(pady=5, padx=25)
+
+        # first name
+        first_name_label = tk.Label(
+            self.right_frame, text="Please enter the first name", font=("Arial", 12)
+        )
+        first_name_label.pack(pady=5, padx=25)
+        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry.insert(0, updated_profile.first_name)
+        first_name_entry.pack(pady=5, padx=25)
+
+        # last name
+        last_name_label = tk.Label(
+            self.right_frame, text="Please enter the last name", font=("Arial", 12)
+        )
+        last_name_label.pack(pady=5, padx=25)
+        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry.insert(0, updated_profile.last_name)
+        last_name_entry.pack(pady=5, padx=25)
+
+        # role
+        choosable_roles = (User.Role.SYSTEM_ADMIN.value, User.Role.CONSULTANT.value)
+        role_label = tk.Label(self.right_frame, text="Role", font=("Arial", 12))
+        role_label.pack(pady=5, padx=25)
+        role_combobox = ttk.Combobox(self.right_frame, values=choosable_roles)
+        role_combobox.set(updated_user.role)
+        role_combobox.pack(pady=5, padx=25)
+
+        # reset password button
+        reset_password_button = tk.Button(
+            self.right_frame,
+            text="Reset Password",
+            command=lambda: self.view_password_reset(updated_user.username),
+        )
+        reset_password_button.pack(pady=5)
+
+        # submit button
+        submit_button = tk.Button(self.right_frame, text="Save", command=submit)
+        submit_button.pack(pady=5)
+
+        # delete button
+        delete_button = tk.Button(
+            self.right_frame,
+            text="Delete",
+            command=delete,
+            fg="red",
+            font=("Arial", 12, "bold"),
+        )
+        delete_button.pack(pady=5)
+
+        # back button
+        back_button = tk.Button(
+            self.right_frame, text="Cancel", command=self.view_users
+        )
+        back_button.pack(pady=5)
+
+    def view_consultant_create(self):
+        if not self.authorized(allowed_roles=(User.Role.SYSTEM_ADMIN,)):
+            return
+        self.create_view(self.user.role, "Users")
+
+        def submit():
+            if not self.authorized(allowed_roles=(User.Role.SYSTEM_ADMIN,)):
+                return
+            username = username_entry.get()
+            password = password_entry.get()
+            first_name = first_name_entry.get()
+            last_name = last_name_entry.get()
+
+            errors = []
+            if not validate_username(username):
+                errors.append("Username is not valid.")
+
+            if not validate_password(password):
+                errors.append("Password is not valid.")
+
+            if not validate_name(first_name):
+                errors.append("First name has to be between 2 and 20 characters.")
+
+            if not validate_name(last_name):
+                errors.append("Last name has to be between 2 and 20 characters.")
+
+            if not self.user_manager.is_available_username(username):
+                errors.append("Username is already taken.")
+
+            if len(errors) == 0:
+                user = self.user_manager.create_user(
+                    username, password, User.Role.CONSULTANT.value
+                )
+                App.logger.log_activity(
+                    self.user,
+                    "created user",
+                    f"with username: {user.username}",
+                    False,
+                )
+
+                if user is not None:
+                    profile = self.profile_manager.create_profile(
+                        first_name, last_name, user.id
+                    )
+                    if profile is not None:
+                        messagebox.showinfo("Information", f"User has been created.")
+                        self.view_users()
+            else:
+                messages = "\n".join(errors)
+                messagebox.showinfo("Information", messages)
+
+        # Create a title label
+        title_label = tk.Label(
+            self.right_frame, text="Add new Consultant", font=("Arial", 16, "bold")
+        )
+        title_label.pack(pady=10)
+
+        # username
+        username_label = tk.Label(
+            self.right_frame, text="Please enter the new username", font=("Arial", 12)
+        )
+        username_label.pack(pady=5, padx=25)
+        username_entry = tk.Entry(self.right_frame, width=100)
+        username_entry.pack(pady=5, padx=25)
+
+        # password
+        password_label = tk.Label(
+            self.right_frame, text="Please enter the new password", font=("Arial", 12)
+        )
+        password_label.pack(pady=5, padx=25)
+        password_entry = tk.Entry(self.right_frame, show="*", width=100)
+        password_entry.pack(pady=5, padx=25)
+
+        # first name
+        first_name_label = tk.Label(
+            self.right_frame, text="Please enter the first name", font=("Arial", 12)
+        )
+        first_name_label.pack(pady=5, padx=25)
+        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry.pack(pady=5, padx=25)
+
+        # last name
+        last_name_label = tk.Label(
+            self.right_frame, text="Please enter the last name", font=("Arial", 12)
+        )
+        last_name_label.pack(pady=5, padx=25)
+        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry.pack(pady=5, padx=25)
+
+        # submit button
+        submit_button = tk.Button(self.right_frame, text="Save", command=submit)
+        submit_button.pack(pady=20)
+
+        # back button
+        back_button = tk.Button(
+            self.right_frame, text="Cancel", command=self.view_users
+        )
+        back_button.pack(pady=20)
+
+    def view_consultant_update(self, username):
+        if not self.authorized(allowed_roles=(User.Role.SYSTEM_ADMIN,)):
+            return
+        self.create_view(self.user.role, "Users")
+
+        def submit():
+            if not self.authorized(allowed_roles=(User.Role.SYSTEM_ADMIN,)):
+                return
+            current_username = current_username_entry.get()
+            new_first_name = first_name_entry.get()
+            new_last_name = last_name_entry.get()
+
+            try:
+                user_to_update = self.user_manager.get_user(current_username)
+                if user_to_update is not None:
+                    errors = []
+                    if not validate_name(new_first_name):
+                        errors.append(
+                            "First name has to be between 2 and 20 characters."
+                        )
+
+                    if not validate_name(new_last_name):
+                        errors.append(
+                            "Last name has to be between 2 and 20 characters."
+                        )
+
+                    if len(errors) == 0:
+                        self.user_manager.update_user(
+                            user_to_update, current_username, User.Role.CONSULTANT.value
+                        )
+                        updated_user = self.user_manager.get_user(current_username)
+                        if updated_user is not None:
+                            profile_to_update = self.profile_manager.get_profile(
+                                user_to_update.id
+                            )
+                            updated_profile = self.profile_manager.update_profile(
+                                profile_to_update, new_first_name, new_last_name
+                            )
+                            if updated_profile is not None:
+                                messagebox.showinfo(
+                                    "Information", "User has been updated successfully."
+                                )
+                                App.logger.log_activity(
+                                    self.user,
+                                    "updated user",
+                                    f"with username: {updated_user.username}",
+                                    False,
+                                )
+                                self.view_users()
+                        else:
+                            messagebox.showerror(
+                                "Error", "Failed to retrieve updated user."
+                            )
+                    else:
+                        messages = "\n".join(errors)
+                        messagebox.showerror("Information", messages)
+                else:
+                    messagebox.showerror("Error", "User not found.")
+            except Exception as e:
+                messagebox.showerror("Error", f"Failed to update user: {str(e)}")
+
+        def delete():
+            if not self.authorized(allowed_roles=(User.Role.SYSTEM_ADMIN,)):
+                return
+            current_username = current_username_entry.get()
+            user = self.user_manager.get_user(current_username)
+            self.user_manager.delete_user(user)
+            messagebox.showinfo("Information", "User has been deleted.")
+
+            App.logger.log_activity(
+                self.user, "deleted user", f"with username: {user.username}", False
+            )
+            self.view_users()
+
+        # Get user and profile
+        updated_user = self.user_manager.get_user(username)
+        updated_profile = self.profile_manager.get_profile(updated_user.id)
+
+        # Create a title label
+        title_label = tk.Label(
+            self.right_frame, text=f"Update Consultant", font=("Arial", 16, "bold")
+        )
+        title_label.pack(pady=10)
+
+        # username
+        current_username_label = tk.Label(
+            self.right_frame, text="Current Username", font=("Arial", 12)
+        )
+        current_username_label.pack(pady=5, padx=25)
+        current_username_entry = tk.Entry(self.right_frame, width=100)
+        current_username_entry.insert(0, updated_user.username)
+        current_username_entry.config(state="readonly")
+        current_username_entry.pack(pady=5, padx=25)
+
+        # first name
+        first_name_label = tk.Label(
+            self.right_frame, text="Please enter the first name", font=("Arial", 12)
+        )
+        first_name_label.pack(pady=5, padx=25)
+        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry.insert(0, updated_profile.first_name)
+        first_name_entry.pack(pady=5, padx=25)
+
+        # last name
+        last_name_label = tk.Label(
+            self.right_frame, text="Please enter the last name", font=("Arial", 12)
+        )
+        last_name_label.pack(pady=5, padx=25)
+        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry.insert(0, updated_profile.last_name)
+        last_name_entry.pack(pady=5, padx=25)
+
+        # reset password button
+        reset_password_button = tk.Button(
+            self.right_frame,
+            text="Reset Password",
+            command=lambda: self.view_password_reset(updated_user.username),
+        )
+        reset_password_button.pack(pady=5)
+
+        # submit button
+        submit_button = tk.Button(self.right_frame, text="Save", command=submit)
+        submit_button.pack(pady=5)
+
+        # delete button
+        delete_button = tk.Button(
+            self.right_frame,
+            text="Delete",
+            command=delete,
+            fg="red",
+            font=("Arial", 12, "bold"),
+        )
+        delete_button.pack(pady=5)
+
+        # back button
+        back_button = tk.Button(
+            self.right_frame, text="Cancel", command=self.view_users
+        )
+        back_button.pack(pady=5)
+
+    # Members
     def view_members(self):
-        self.authorize(
+        if not self.authorized(
             allowed_roles=(
                 User.Role.SUPER_ADMIN,
                 User.Role.SYSTEM_ADMIN,
                 User.Role.CONSULTANT,
             )
-        )
+        ):
+            return
         self.create_view(self.user.role, "Members")
 
         title_label = tk.Label(
@@ -275,10 +851,14 @@ class App:
         description_label.pack()
 
         def add_new_member():
-            form = CreateMemberForm(
-                self.right_frame, App.config, App.logger, self.user, self.view_members
+            self.authorized(
+                allowed_roles=(
+                    User.Role.SUPER_ADMIN,
+                    User.Role.SYSTEM_ADMIN,
+                    User.Role.CONSULTANT,
+                )
             )
-            form.show_form()
+            self.view_member_create()
 
         button = tk.Button(
             self.right_frame,
@@ -297,7 +877,7 @@ class App:
         button.pack(side="right", anchor="w", pady=(20, 0), padx=10)
 
         def on_member_click(event):
-            self.authorize(
+            self.authorized(
                 allowed_roles=(
                     User.Role.SUPER_ADMIN,
                     User.Role.SYSTEM_ADMIN,
@@ -306,10 +886,7 @@ class App:
             )
             item = tree.selection()[0]
             id = tree.item(item, "values")[0]
-            update_form = UpdateMemberForm(
-                self.right_frame, App.config, App.logger, self.user, self.view_members
-            )
-            update_form.show_form(int(id))
+            self.view_member_update(int(id))
 
         tree = ttk.Treeview(
             self.right_frame,
@@ -330,13 +907,14 @@ class App:
             tree.insert("", "end", values=(id, first_name, last_name))
 
     def view_members_search(self):
-        self.authorize(
+        if not self.authorized(
             allowed_roles=(
                 User.Role.SUPER_ADMIN,
                 User.Role.SYSTEM_ADMIN,
                 User.Role.CONSULTANT,
             )
-        )
+        ):
+            return
         self.create_view(self.user.role, "Members")
 
         title_label = tk.Label(
@@ -396,8 +974,499 @@ class App:
         )
         search_button.pack(pady=5, padx=20)
 
+    def view_member_create(self):
+        if not self.authorized(
+            allowed_roles=(
+                User.Role.SUPER_ADMIN,
+                User.Role.SYSTEM_ADMIN,
+                User.Role.CONSULTANT,
+            )
+        ):
+            return
+        self.create_view(self.user.role, "Members")
+
+        def submit():
+            if not self.authorized(
+                allowed_roles=(
+                    User.Role.SUPER_ADMIN,
+                    User.Role.SYSTEM_ADMIN,
+                    User.Role.CONSULTANT,
+                )
+            ):
+                return
+            first_name = first_name_entry.get()
+            last_name = last_name_entry.get()
+            age = age_entry.get()
+            gender = genders_option.get()
+            weight = weight_entry.get()
+            email = email_entry.get()
+            phone_number = phone_number_entry.get()
+            street = street_entry.get()
+            house_number = house_number_entry.get()
+            zip_code = zip_code_entry.get()
+            city = city_option.get()
+
+            errors = []
+            if not validate_name(first_name):
+                errors.append("First name has to be between 2 and 20 characters.")
+
+            if not validate_name(last_name):
+                errors.append("Last name has to be between 2 and 20 characters.")
+
+            if not validate_age(age):
+                errors.append("Age has to be between 1 and 100.")
+
+            if not validate_weight(weight):
+                errors.append("Weight has to be between 1 and 200.")
+
+            if not validate_email(email):
+                errors.append("Email is not valid.")
+
+            if not validate_phone_number(phone_number):
+                errors.append("Phone number is not valid.")
+
+            if not validate_street_name(street):
+                errors.append("Street name has to be between 2 and 30 characters.")
+
+            if not validate_house_number(house_number):
+                errors.append("House number has to be between 1 and 9999.")
+
+            if not validate_zip_code(zip_code):
+                errors.append("Zip code is not valid.")
+
+            if not validate_server_input(gender, gender_options):
+                errors.append("Gender is not valid, incident will be reported.")
+                App.logger.log_activity(
+                    self.user,
+                    "Server-side input is modified.",
+                    f"Gender was not valid: {gender}",
+                    True,
+                )
+
+            if not validate_server_input(city, city_options):
+                errors.append("City is not valid, incident will be reported.")
+                App.logger.log_activity(
+                    self.user,
+                    "Server-side input is modified.",
+                    f"City was not valid: {city}",
+                    True,
+                )
+
+            if len(errors) == 0:
+                member = self.member_manager.create_member(
+                    first_name, last_name, age, gender, weight, email, phone_number
+                )
+                if member is not None:
+                    address = self.address_manager.create_address(
+                        street, house_number, zip_code, city, member.id
+                    )
+                    if address is not None:
+                        messagebox.showinfo("Information", "Member has been created.")
+                        App.logger.log_activity(
+                            self.user,
+                            "created member",
+                            f"with id: {member.id}",
+                            False,
+                        )
+                        self.view_members()
+            else:
+                messages = "\n".join(errors)
+                messagebox.showinfo("Information", messages)
+
+        # Create a title label
+        title_label = tk.Label(
+            self.right_frame, text="Create new member", font=("Arial", 16, "bold")
+        )
+        title_label.pack(pady=10)
+
+        # first name
+        first_name_label = tk.Label(
+            self.right_frame, text="Please enter the first name", font=("Arial", 12)
+        )
+        first_name_label.pack(pady=5, padx=25)
+        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry.pack(pady=5, padx=25)
+
+        # last name
+        last_name_label = tk.Label(
+            self.right_frame, text="Please enter the last name", font=("Arial", 12)
+        )
+        last_name_label.pack(pady=5, padx=25)
+        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry.pack(pady=5, padx=25)
+
+        # age
+        age_label = tk.Label(
+            self.right_frame, text="Please enter the age", font=("Arial", 12)
+        )
+        age_label.pack(pady=5, padx=25)
+        age_entry = tk.Entry(self.right_frame, width=100)
+        age_entry.pack(pady=5, padx=25)
+
+        # gender
+        gender_label = tk.Label(
+            self.right_frame, text="Select a gender:", width=100, font=("Arial", 12)
+        )
+        gender_label.pack(pady=10)
+        gender_options = [Member.Gender.MALE.value, Member.Gender.FEMALE.value]
+        genders_option = ttk.Combobox(self.right_frame, values=gender_options)
+        genders_option.pack()
+
+        # weight
+        weight_label = tk.Label(
+            self.right_frame, text="Please enter the weight", font=("Arial", 12)
+        )
+        weight_label.pack(pady=5, padx=25)
+        weight_entry = tk.Entry(self.right_frame, width=100)
+        weight_entry.pack(pady=5, padx=25)
+
+        # email
+        email_label = tk.Label(
+            self.right_frame, text="Please enter the email", font=("Arial", 12)
+        )
+        email_label.pack(pady=5, padx=25)
+        email_entry = tk.Entry(self.right_frame, width=100)
+        email_entry.pack(pady=5, padx=25)
+
+        # phone number
+        phone_number_label = tk.Label(
+            self.right_frame, text="Please enter the phone number", font=("Arial", 12)
+        )
+        phone_number_label.pack(pady=5, padx=25)
+        phone_number_entry = tk.Entry(self.right_frame, width=100)
+        phone_number_entry.pack(pady=5, padx=25)
+
+        # DIVIDER
+        divider = tk.Label(self.right_frame, text="---------------------------------")
+        divider.pack(pady=5, padx=25)
+
+        # address: street
+        street_label = tk.Label(
+            self.right_frame, text="Please enter the street", font=("Arial", 12)
+        )
+        street_label.pack(pady=5, padx=25)
+        street_entry = tk.Entry(self.right_frame, width=100)
+        street_entry.pack(pady=5, padx=25)
+
+        # address: house number
+        house_number_label = tk.Label(
+            self.right_frame, text="Please enter the house number", font=("Arial", 12)
+        )
+        house_number_label.pack(pady=5, padx=25)
+        house_number_entry = tk.Entry(self.right_frame, width=100)
+        house_number_entry.pack(pady=5, padx=25)
+
+        # address: zip code
+        zip_code_label = tk.Label(
+            self.right_frame, text="Please enter the zip code", font=("Arial", 12)
+        )
+        zip_code_label.pack(pady=5, padx=25)
+        zip_code_entry = tk.Entry(self.right_frame, width=100)
+        zip_code_entry.pack(pady=5, padx=25)
+
+        # address: city
+        city_label = tk.Label(
+            self.right_frame, text="Select a city:", width=100, font=("Arial", 12)
+        )
+        city_label.pack(pady=10)
+        city_options = [city.value for city in Address.City]
+        city_option = ttk.Combobox(self.right_frame, values=city_options)
+        city_option.pack()
+
+        # submit button
+        submit_button = tk.Button(self.right_frame, text="Submit", command=submit)
+        submit_button.pack(pady=20)
+
+        # back button
+        back_button = tk.Button(
+            self.right_frame, text="Cancel", command=self.view_members
+        )
+        back_button.pack(pady=20)
+
+    def view_member_update(self, member_id):
+        if not self.authorized(
+            allowed_roles=(
+                User.Role.SUPER_ADMIN,
+                User.Role.SYSTEM_ADMIN,
+                User.Role.CONSULTANT,
+            )
+        ):
+            return
+        self.create_view(self.user.role, "Members")
+
+        def submit():
+            if not self.authorized(
+                allowed_roles=(
+                    User.Role.SUPER_ADMIN,
+                    User.Role.SYSTEM_ADMIN,
+                    User.Role.CONSULTANT,
+                )
+            ):
+                return
+            updated_first_name = updated_first_name_entry.get()
+            updated_last_name = updated_last_name_entry.get()
+            updated_age = updated_age_entry.get()
+            updated_gender = genders_option.get()
+            updated_weight = updated_weight_entry.get()
+            updated_email = updated_email_entry.get()
+            updated_phone_number = updated_phone_number_entry.get()
+            updated_street = street_entry.get()
+            updated_house_number = house_number_entry.get()
+            updated_zip_code = zip_code_entry.get()
+            updated_city = city_option.get()
+
+            errors = []
+            if not validate_name(updated_first_name):
+                errors.append("First name has to be between 2 and 20 characters.")
+
+            if not validate_name(updated_last_name):
+                errors.append("Last name has to be between 2 and 20 characters.")
+
+            if not validate_age(updated_age):
+                errors.append("Age has to be between 1 and 100.")
+
+            if not validate_weight(updated_weight):
+                errors.append("Weight has to be between 1 and 200.")
+
+            if not validate_email(updated_email):
+                errors.append("Email is not valid.")
+
+            if not validate_phone_number(updated_phone_number):
+                errors.append("Phone number is not valid.")
+
+            if not validate_street_name(updated_street):
+                errors.append("Street name has to be between 2 and 30 characters.")
+
+            if not validate_house_number(updated_house_number):
+                errors.append("House number has to be between 1 and 9999.")
+
+            if not validate_zip_code(updated_zip_code):
+                errors.append("Zip code is not valid.")
+
+            if not validate_server_input(updated_gender, gender_options):
+                errors.append("Gender is not valid, incident will be reported.")
+                App.logger.log_activity(
+                    self.user,
+                    "Server-side input is modified.",
+                    f"Gender was not valid: {updated_gender}",
+                    True,
+                )
+
+            if not validate_server_input(updated_city, city_options):
+                errors.append("City is not valid, incident will be reported.")
+                App.logger.log_activity(
+                    self.user,
+                    "Server-side input is modified.",
+                    f"City was not valid: {updated_city}",
+                    True,
+                )
+
+            if len(errors) == 0:
+                member_to_update = member_to_update
+                self.member_manager.update_member(
+                    member_to_update,
+                    updated_first_name,
+                    updated_last_name,
+                    updated_age,
+                    updated_gender,
+                    updated_weight,
+                    updated_email,
+                    updated_phone_number,
+                )
+                updated_member = self.member_manager.get_member(member_to_update.id)
+                if updated_member is not None:
+                    address_to_update = address_to_update
+                    self.address_manager.update_address(
+                        address_to_update,
+                        updated_street,
+                        updated_house_number,
+                        updated_zip_code,
+                        updated_city,
+                        member_to_update.id,
+                    )
+                    updated_address = self.address_manager.get_address(
+                        member_to_update.id
+                    )
+                    if updated_address is not None:
+                        messagebox.showinfo(
+                            "Information", "Member has been updated successfully."
+                        )
+                        App.logger.log_activity(
+                            self.user,
+                            "updated member",
+                            f"with id: {updated_member.id}",
+                            False,
+                        )
+                        self.view_members()
+                    else:
+                        messagebox.showerror(
+                            "Error", "Failed to retrieve updated address."
+                        )
+                else:
+                    messagebox.showerror("Error", "Failed to retrieve updated member.")
+            else:
+                messages = "\n".join(errors)
+                messagebox.showinfo("Information", messages)
+
+        def delete():
+            if not self.authorized(
+                allowed_roles=(
+                    User.Role.SUPER_ADMIN,
+                    User.Role.SYSTEM_ADMIN,
+                    User.Role.CONSULTANT,
+                )
+            ):
+                return
+            member = self.member_manager.get_member(self.member_to_update.id)
+            self.member_manager.delete_member(member)
+            messagebox.showinfo("Information", "Member has been deleted.")
+            App.logger.log_activity(
+                self.user, "deleted member", f"with id: {member.id}", False
+            )
+            self.view_members()
+
+        title_label = tk.Label(
+            self.right_frame, text="Update member", font=("Arial", 16, "bold")
+        )
+        title_label.pack(pady=10)
+
+        member_to_update = updated_member = self.member_manager.get_member(member_id)
+        address_to_update = updated_address = self.address_manager.get_address(
+            member_id
+        )
+
+        # first name
+        updated_first_name_label = tk.Label(
+            self.right_frame, text="First Name", font=("Arial", 12)
+        )
+        updated_first_name_label.pack(pady=5, padx=25)
+        updated_first_name_entry = tk.Entry(self.right_frame, width=100)
+        updated_first_name_entry.insert(0, updated_member.first_name)
+        updated_first_name_entry.pack(pady=5, padx=25)
+
+        # last name
+        updated_last_name_label = tk.Label(
+            self.right_frame, text="Last Name", font=("Arial", 12)
+        )
+        updated_last_name_label.pack(pady=5, padx=25)
+        updated_last_name_entry = tk.Entry(self.right_frame, width=100)
+        updated_last_name_entry.insert(0, updated_member.last_name)
+        updated_last_name_entry.pack(pady=5, padx=25)
+
+        # age
+        updated_age_label = tk.Label(
+            self.right_frame, text="New Age", font=("Arial", 12)
+        )
+        updated_age_label.pack(pady=5, padx=25)
+        updated_age_entry = tk.Entry(self.right_frame, width=100)
+        updated_age_entry.insert(0, updated_member.age)
+        updated_age_entry.pack(pady=5, padx=25)
+
+        # gender
+        gender_label = tk.Label(
+            self.right_frame, text="Select a gender:", width=100, font=("Arial", 12)
+        )
+        gender_label.pack(pady=10)
+        gender_options = (Member.Gender.MALE.value, Member.Gender.FEMALE.value)
+        genders_option = ttk.Combobox(self.right_frame, values=gender_options)
+        genders_option.insert(0, updated_member.gender)
+        genders_option.pack()
+
+        # weight
+        updated_weight_label = tk.Label(
+            self.right_frame, text="New Weight", font=("Arial", 12)
+        )
+        updated_weight_label.pack(pady=5, padx=25)
+        updated_weight_entry = tk.Entry(self.right_frame, width=100)
+        updated_weight_entry.insert(0, updated_member.weight)
+        updated_weight_entry.pack(pady=5, padx=25)
+
+        # email
+        updated_email_label = tk.Label(
+            self.right_frame, text="New Email", font=("Arial", 12)
+        )
+        updated_email_label.pack(pady=5, padx=25)
+        updated_email_entry = tk.Entry(self.right_frame, width=100)
+        updated_email_entry.insert(0, updated_member.email)
+        updated_email_entry.pack(pady=5, padx=25)
+
+        # phone number
+        updated_phone_number_label = tk.Label(
+            self.right_frame, text="New Phone Number", font=("Arial", 12)
+        )
+        updated_phone_number_label.pack(pady=5, padx=25)
+        updated_phone_number_entry = tk.Entry(self.right_frame, width=100)
+        updated_phone_number_entry.insert(0, updated_member.phone_number)
+        updated_phone_number_entry.pack(pady=5, padx=25)
+
+        # DIVIDER
+        divider = tk.Label(self.right_frame, text="---------------------------------")
+        divider.pack(pady=5, padx=25)
+
+        # address: street
+        street_label = tk.Label(
+            self.right_frame, text="Please enter the street", font=("Arial", 12)
+        )
+        street_label.pack(pady=5, padx=25)
+        street_entry = tk.Entry(self.right_frame, width=100)
+        street_entry.pack(pady=5, padx=25)
+        street_entry.insert(0, updated_address.street_name)
+
+        # address: house number
+        house_number_label = tk.Label(
+            self.right_frame, text="Please enter the house number", font=("Arial", 12)
+        )
+        house_number_label.pack(pady=5, padx=25)
+        house_number_entry = tk.Entry(self.right_frame, width=100)
+        house_number_entry.pack(pady=5, padx=25)
+        house_number_entry.insert(0, updated_address.house_number)
+
+        # address: zip code
+        zip_code_label = tk.Label(
+            self.right_frame, text="Please enter the zip code", font=("Arial", 12)
+        )
+        zip_code_label.pack(pady=5, padx=25)
+        zip_code_entry = tk.Entry(self.right_frame, width=100)
+        zip_code_entry.pack(pady=5, padx=25)
+        zip_code_entry.insert(0, updated_address.zip_code)
+
+        # address: city
+        city_label = tk.Label(
+            self.right_frame, text="Select a city:", width=100, font=("Arial", 12)
+        )
+        city_label.pack(pady=10)
+        city_options = (city.value for city in Address.City)
+        city_option = ttk.Combobox(self.right_frame, values=city_options)
+        city_option.pack()
+        city_option.insert(0, updated_address.city)
+
+        # submit button
+        submit_button = tk.Button(self.right_frame, text="Submit", command=submit)
+        submit_button.pack(pady=10)
+
+        # delete button
+        delete_button = tk.Button(
+            self.right_frame,
+            text="Delete",
+            command=delete,
+            fg="red",
+            font=("Arial", 12, "bold"),
+        )
+        delete_button.pack(pady=5)
+
+        # back button
+        back_button = tk.Button(
+            self.right_frame, text="Cancel", command=self.view_members
+        )
+        back_button.pack(pady=5)
+
+    # Password reset
     def view_password_reset(self, username):
-        self.authorize(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
+        if not self.authorized(
+            allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
+        ):
+            return
+
         if (
             self.user.role == User.Role.SYSTEM_ADMIN.value
             and self.user_manager.get_user(username).role
@@ -409,32 +1478,129 @@ class App:
             return self.view_users()
 
         self.create_view(self.user.role, "Users")
-        reset_form = OtherResetForm(
-            self.right_frame, App.config, App.logger, self.user, self.view_users
+
+        def submit():
+            if not self.authorized(
+                allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
+            ):
+                return
+            reseted_user = self.user_manager.get_user(current_username_entry.get())
+            password = password_entry.get()
+
+            if validate_password(password):
+                self.user_manager.reset_password(reseted_user, password)
+                messagebox.showinfo(
+                    "Information", "User temporary password has been set."
+                )
+                self.user_manager.reset_password_status(reseted_user, True)
+                App.logger.log_activity(
+                    self.user,
+                    "reset password of user",
+                    f"with username: {reseted_user.username}",
+                    False,
+                )
+                self.view_users()
+            else:
+                messagebox.showinfo("Information", "Please try Again")
+
+        title_label = tk.Label(
+            self.right_frame, text="Reset Password", font=("Arial", 16, "bold")
         )
-        reset_form.show_form(username)
+        title_label.pack(pady=10)
+
+        current_username_label = tk.Label(
+            self.right_frame, text="Current Username", font=("Arial", 12)
+        )
+        current_username_label.pack(pady=5, padx=25)
+        current_username_entry = tk.Entry(self.right_frame, width=100)
+        current_username_entry.insert(0, username)
+        current_username_entry.config(state="readonly")
+        current_username_entry.pack(pady=5, padx=25)
+
+        password_label = tk.Label(
+            self.right_frame, text="Enter new password", font=("Arial", 12)
+        )
+        password_label.pack(pady=5, padx=25)
+
+        password_entry = tk.Entry(self.right_frame, show="*", width=100)
+        password_entry.pack(pady=5, padx=25)
+
+        submit_button = tk.Button(
+            self.right_frame, text="Reset Password", command=submit
+        )
+        submit_button.pack(pady=20)
 
     def view_my_password_reset(self):
-        self.authorize(
+        if not self.authorized(
             allowed_roles=(
                 User.Role.SUPER_ADMIN,
                 User.Role.SYSTEM_ADMIN,
                 User.Role.CONSULTANT,
-            )
-        )
+            ),
+            without_password_reset=True,
+        ):
+            return
         self.create_view(self.user.role, "Reset my password")
 
-        reset_form = UserResetForm(
-            self.right_frame,
-            App.config,
-            App.logger,
-            self.user,
-            self.view_login_screen,
-        )
-        reset_form.show_form(self.user.username)
+        def submit():
+            if not self.authorized(
+                allowed_roles=(
+                    User.Role.SUPER_ADMIN,
+                    User.Role.SYSTEM_ADMIN,
+                    User.Role.CONSULTANT,
+                ),
+                without_password_reset=True,
+            ):
+                return
+            reseted_user = self.user_manager.get_user(current_username_entry.get())
+            password = password_entry.get()
 
+            if validate_password(password):
+                self.user_manager.reset_password(reseted_user, password)
+                messagebox.showinfo("Information", "User password has been set.")
+                self.user_manager.reset_password_status(reseted_user)
+                App.logger.log_activity(
+                    self.user,
+                    "reset their own password",
+                    f"with role: {reseted_user.role}",
+                    False,
+                )
+                self.logout()
+            else:
+                messagebox.showinfo("Information", "Please try Again")
+
+        title_label = tk.Label(
+            self.right_frame, text="Reset Password", font=("Arial", 16, "bold")
+        )
+        title_label.pack(pady=10)
+
+        current_username_label = tk.Label(
+            self.right_frame, text="Current Username", font=("Arial", 12)
+        )
+        current_username_label.pack(pady=5, padx=25)
+        current_username_entry = tk.Entry(self.right_frame, width=100)
+        current_username_entry.insert(0, self.user.username)
+        current_username_entry.config(state="readonly")
+        current_username_entry.pack(pady=5, padx=25)
+
+        password_label = tk.Label(
+            self.right_frame, text="Enter new password", font=("Arial", 12)
+        )
+        password_label.pack(pady=5, padx=25)
+        password_entry = tk.Entry(self.right_frame, show="*", width=100)
+        password_entry.pack(pady=5, padx=25)
+
+        submit_button = tk.Button(
+            self.right_frame, text="Reset Password", command=submit
+        )
+        submit_button.pack(pady=20)
+
+    # Backups
     def view_backups(self):
-        self.authorize(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
+        if not self.authorized(
+            allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
+        ):
+            return
         self.create_view(self.user.role, "Backups")
 
         title_label = tk.Label(
@@ -447,7 +1613,7 @@ class App:
         def new_backup():
             backup_name = self.backup_manager.create()
             messagebox.showinfo("Backup Created", "Backup created successfully")
-            self.logger.log_activity(
+            App.logger.log_activity(
                 self.user, "created_backup", f"{backup_name}", False
             )
             self.view_backups()
@@ -464,7 +1630,7 @@ class App:
         tree = ttk.Treeview(self.right_frame, columns=("Back up"), show="headings")
 
         def on_backup_click(event):
-            self.authorize(
+            self.authorized(
                 allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN)
             )
             item = tree.selection()[0]
@@ -478,9 +1644,9 @@ class App:
         tree.pack(padx=10, pady=10)
         tree.bind("<Double-1>", on_backup_click)
 
-    #
+    # ======================================== #
     # Layout functions
-    #
+    # ======================================== #
     def clear_screen(self):
         for widget in self.root.winfo_children():
             widget.destroy()
@@ -528,7 +1694,11 @@ class App:
         greet_user_text.pack()
 
         if role == User.Role.CONSULTANT.value:
-            menu_options = [option for option in menu_options if option not in {"Backups", "Logs", "Users"}]
+            menu_options = [
+                option
+                for option in menu_options
+                if option not in {"Backups", "Logs", "Users"}
+            ]
 
         for i, option in enumerate(menu_options):
             if current_page == option:
@@ -554,10 +1724,13 @@ class App:
         self.make_frames()
         self.create_navbar(role, current_page)
 
-    #
+    # ======================================== #
     # Authentication
-    #
+    # ======================================== #
     def login(self):
+        if self.timeout:
+            return
+
         username = self.username_entry.get()
         password = self.password_entry.get()
         user = self.user_manager.login(username, password)
@@ -566,14 +1739,7 @@ class App:
             self.user = user
             self.user_manager.update_last_login(user)
             if user.reset_password == 1:
-                reset_form = UserResetForm(
-                    self.root,
-                    App.config,
-                    App.logger,
-                    self.user,
-                    self.view_login_screen,
-                )
-                reset_form.show_form(self.user.username)
+                self.view_my_password_reset()
 
             else:
                 App.logger.log_activity(
@@ -619,39 +1785,3 @@ class App:
     def logout(self):
         self.user = None
         self.view_login_screen()
-
-    #
-    # Authorization functions
-    #
-    def authorize(self, allowed_roles: tuple[User.Role]):
-        """
-        User is authorized if:
-        1. self.user is not None
-        2. self.user still exists in database
-        3. self.user.role is still same as in database
-        4. self.user.role is in allowed_roles
-        """
-
-        allowed_roles = (role.value for role in allowed_roles)
-        if (
-            self.user is not None
-            and self.user_manager.get_user(self.user.username) is not None
-            and self.user_manager.get_user(self.user.username).role == self.user.role
-            and self.user.role in allowed_roles
-        ):
-            return
-
-        if self.user.role not in allowed_roles:
-            messagebox.showerror(
-                "Unauthorized", "You are not authorized to view this page."
-            )
-            # send to default page
-            if self.user.role == User.Role.SUPER_ADMIN.value:
-                self.view_users()
-            elif self.user.role == User.Role.SYSTEM_ADMIN.value:
-                self.view_users()
-            elif self.user.role == User.Role.CONSULTANT.value:
-                self.view_members()
-
-        messagebox.showerror("Something went wrong", "Please log in again.")
-        self.logout()
