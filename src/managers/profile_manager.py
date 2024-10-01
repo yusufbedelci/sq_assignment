@@ -53,6 +53,13 @@ class ProfileManager(BaseManager):
         ]
 
         for profile in profiles:
+            if any(
+                profile["first_name"] == existing_profile.first_name
+                and profile["last_name"] == existing_profile.last_name
+                for existing_profile in self.get_profiles()
+            ):
+                return
+
             encrypted_first_name = rsa_encrypt(
                 profile["first_name"], self.config.public_key
             )
@@ -66,7 +73,6 @@ class ProfileManager(BaseManager):
             SQL_CREATE_USER_PROFILES = f"INSERT INTO profiles (first_name, last_name, registration_date, user_id) VALUES (?, ?, ?, ?);"
             try:
                 cursor = self.config.con.cursor()
-                print(profile["id"])
                 cursor.execute(
                     SQL_CREATE_USER_PROFILES,
                     (
