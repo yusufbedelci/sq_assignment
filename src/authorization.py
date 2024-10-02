@@ -40,9 +40,7 @@ def handle_unauthorized(app, allowed_roles: tuple[User.Role]):
     Handle unauthorized access
     """
     if app.user.role not in allowed_roles:
-        messagebox.showerror(
-            "Unauthorized", "You are not authorized to view this page."
-        )
+        messagebox.showerror("Unauthorized", "You are not authorized to view this page.")
         # send to default page
         if app.user.role == User.Role.SUPER_ADMIN.value:
             app.view_users()
@@ -78,9 +76,7 @@ def authorized(allowed_roles: tuple[User.Role], without_password_reset=False):
     return decorator
 
 
-def authorized_action(
-    app, allowed_roles: tuple[User.Role], without_password_reset=False
-):
+def authorized_action(app, allowed_roles: tuple[User.Role], without_password_reset=False):
     """
     Authorization action decorator for standalone functions (like submit actions).
     """

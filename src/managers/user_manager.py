@@ -44,12 +44,8 @@ class UserManager(BaseManager):
         password = self.hash_and_salt("Admin_123?")
         encrypted_username = rsa_encrypt("super_admin", self.config.public_key)
         encrypted_password = rsa_encrypt(password, self.config.public_key)
-        encrypted_role = rsa_encrypt(
-            User.Role.SUPER_ADMIN.value, self.config.public_key
-        )
-        encrypted_last_login = rsa_encrypt(
-            datetime_to_string(datetime.now()), self.config.public_key
-        )
+        encrypted_role = rsa_encrypt(User.Role.SUPER_ADMIN.value, self.config.public_key)
+        encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
 
         SQL_CREATE_SUPER_ADMIN = f"INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);"
 
@@ -98,22 +94,15 @@ class UserManager(BaseManager):
 
         for user in users:
 
-            if any(
-                user["username"] == existing_user.username for existing_user in self.get_users()):
+            if any(user["username"] == existing_user.username for existing_user in self.get_users()):
                 return
 
             # user accounts
             password = self.hash_and_salt(f'{user["password"]}')
-            encrypted_username = rsa_encrypt(
-                f'{user["username"]}', self.config.public_key
-            )
+            encrypted_username = rsa_encrypt(f'{user["username"]}', self.config.public_key)
             encrypted_password = rsa_encrypt(password, self.config.public_key)
-            encrypted_role = rsa_encrypt(
-                user["role"].value, self.config.public_key
-            )
-            encrypted_last_login = rsa_encrypt(
-                datetime_to_string(datetime.now()), self.config.public_key
-            )
+            encrypted_role = rsa_encrypt(user["role"].value, self.config.public_key)
+            encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
 
             SQL_CREATE_USERS = f"INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);"
 
@@ -142,9 +131,7 @@ class UserManager(BaseManager):
 
     def update_last_login(self, user):
         # user.last_login
-        encrypted_last_login = rsa_encrypt(
-            datetime_to_string(datetime.now()), self.config.public_key
-        )
+        encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
         SQL_UPDATE_LAST_LOGIN = """
                 UPDATE users SET last_login = ? WHERE id = ?;
                 """
@@ -164,9 +151,7 @@ class UserManager(BaseManager):
     def verify_password(self, stored_password, provided_password):
         salt_hex, hashed_password = stored_password.split(":")
         salt = bytes.fromhex(salt_hex)
-        provided_hashed_password = hashlib.sha256(
-            salt + provided_password.encode()
-        ).hexdigest()
+        provided_hashed_password = hashlib.sha256(salt + provided_password.encode()).hexdigest()
         return provided_hashed_password == hashed_password
 
     def get_users(self) -> list[User]:
@@ -205,9 +190,7 @@ class UserManager(BaseManager):
         encrypted_username = rsa_encrypt(username, self.config.public_key)
         encrypted_password = rsa_encrypt(hashed_password, self.config.public_key)
         encrypted_role = rsa_encrypt(role, self.config.public_key)
-        encrypted_last_login = rsa_encrypt(
-            datetime_to_string(datetime.now()), self.config.public_key
-        )
+        encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
 
         SQL_CREATE_USER = """
             INSERT INTO users (username, password, role, last_login) VALUES (?, ?, ?, ?);

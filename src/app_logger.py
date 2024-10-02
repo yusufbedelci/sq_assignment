@@ -41,9 +41,7 @@ class AppLogger:
                 for line in file.readlines():
                     line = base64.b64decode(line)
                     line = rsa_decrypt(line, self.config.private_key)
-                    values = [
-                        val.replace("%7C", "|").strip() for val in line.split("|")
-                    ]
+                    values = [val.replace("%7C", "|").strip() for val in line.split("|")]
                     logs.append(values)
         except FileNotFoundError:
             pass
@@ -52,9 +50,7 @@ class AppLogger:
     def get_critical_logs(self, last_login):
         critical_logs = []
         for log in self.get_logs():
-            if log[1] == "CRITICAL" and string_to_datetime(log[0]) > string_to_datetime(
-                last_login
-            ):
+            if log[1] == "CRITICAL" and string_to_datetime(log[0]) > string_to_datetime(last_login):
                 critical_logs.append(log)
         return critical_logs
 
@@ -62,9 +58,7 @@ class AppLogger:
         all_logs = reversed(self.get_logs())
         labeled_logs = []
         for log in all_logs:
-            if log[1] == "CRITICAL" and string_to_datetime(log[0]) > string_to_datetime(
-                last_login
-            ):
+            if log[1] == "CRITICAL" and string_to_datetime(log[0]) > string_to_datetime(last_login):
                 labeled_logs.append(["unread", log])
             else:
                 labeled_logs.append(["read", log])

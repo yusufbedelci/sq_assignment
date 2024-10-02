@@ -1291,8 +1291,15 @@ class App:
         def on_backup_click(event):
             item = tree.selection()[0]
             backup = tree.item(item, "values")[0]
-            self.backup_manager.restore(backup)
-            messagebox.showinfo("Backup Restored", "Backup restored successfully")
+
+            proceeed = messagebox.askyesno(
+                "Warning",
+                "Are you sure you want to restore this backup? This will overwrite the current database, and users may lose access to their accouns, including yourself.",
+            )
+            if proceeed:
+                self.backup_manager.restore(backup)
+                messagebox.showinfo("Backup Restored", "Backup restored successfully")
+            return
 
         for i, backup in enumerate(backups):
             tree.insert("", "end", values=(backup,))

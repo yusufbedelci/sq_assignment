@@ -64,34 +64,20 @@ class MemberManager(BaseManager):
         for member in members:
             if any(member["email"] == existing_member.email for existing_member in self.get_members()):
                 return
-            encrypted_firstname = rsa_encrypt(
-                f'{member["first_name"]}', self.config.public_key
-            )
-            encrypted_lastname = rsa_encrypt(
-                f'{member["last_name"]}', self.config.public_key
-            )
+            encrypted_firstname = rsa_encrypt(f'{member["first_name"]}', self.config.public_key)
+            encrypted_lastname = rsa_encrypt(f'{member["last_name"]}', self.config.public_key)
             encrypted_age = rsa_encrypt(f'{member["age"]}', self.config.public_key)
-            encrypted_weight = rsa_encrypt(
-                f'{member["weight"]}', self.config.public_key
-            )
+            encrypted_weight = rsa_encrypt(f'{member["weight"]}', self.config.public_key)
 
             encrypted_email = rsa_encrypt(f'{member["email"]}', self.config.public_key)
 
-            encrypted_phone_number = rsa_encrypt(
-                f'{member["phone_number"]}', self.config.public_key
-            )
-            encrypted_gender = rsa_encrypt(
-                f'{member["gender"]}', self.config.public_key
-            )
+            encrypted_phone_number = rsa_encrypt(f'{member["phone_number"]}', self.config.public_key)
+            encrypted_gender = rsa_encrypt(f'{member["gender"]}', self.config.public_key)
 
             registration_date = generate_registration_date()
 
-            encrypted_registration_date = rsa_encrypt(
-                registration_date, self.config.public_key
-            )
-            encrypted_membership_id = rsa_encrypt(
-                generate_membership_id(registration_date), self.config.public_key
-            )
+            encrypted_registration_date = rsa_encrypt(registration_date, self.config.public_key)
+            encrypted_membership_id = rsa_encrypt(generate_membership_id(registration_date), self.config.public_key)
 
             SQL_CREATE_MEMBERS = f"INSERT OR IGNORE INTO members (first_name, last_name, age,gender,weight,email,phone_number, registration_date, membership_id) VALUES (?, ?, ?, ?,?, ?,?, ?,?);"
 
@@ -133,15 +119,9 @@ class MemberManager(BaseManager):
             member.gender = rsa_decrypt(member.gender, self.config.private_key)
             member.weight = rsa_decrypt(member.weight, self.config.private_key)
             member.email = rsa_decrypt(member.email, self.config.private_key)
-            member.phone_number = rsa_decrypt(
-                member.phone_number, self.config.private_key
-            )
-            member.registration_date = rsa_decrypt(
-                member.registration_date, self.config.private_key
-            )
-            member.membership_id = rsa_decrypt(
-                member.membership_id, self.config.private_key
-            )
+            member.phone_number = rsa_decrypt(member.phone_number, self.config.private_key)
+            member.registration_date = rsa_decrypt(member.registration_date, self.config.private_key)
+            member.membership_id = rsa_decrypt(member.membership_id, self.config.private_key)
             members.append(member)
 
         return members
@@ -170,12 +150,8 @@ class MemberManager(BaseManager):
         encrypted_weight = rsa_encrypt(weight, self.config.public_key)
         encrypted_email = rsa_encrypt(email, self.config.public_key)
         encrypted_phone_number = rsa_encrypt(phone_number, self.config.public_key)
-        encrypted_registration_date = rsa_encrypt(
-            registration_date, self.config.public_key
-        )
-        encrypted_membership_id = rsa_encrypt(
-            generate_membership_id(registration_date), self.config.public_key
-        )
+        encrypted_registration_date = rsa_encrypt(registration_date, self.config.public_key)
+        encrypted_membership_id = rsa_encrypt(generate_membership_id(registration_date), self.config.public_key)
 
         SQL_CREATE_MEMBER = """
             INSERT INTO members (

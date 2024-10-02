@@ -3,9 +3,7 @@ from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey, RSAPriva
 
 
 class Config:
-    def __init__(
-        self, con: Connection, public_key: RSAPublicKey, private_key: RSAPrivateKey
-    ):
+    def __init__(self, con: Connection, public_key: RSAPublicKey, private_key: RSAPrivateKey):
         self.con = con
         self.con.execute("PRAGMA foreign_keys = ON;")
         self.con.commit()

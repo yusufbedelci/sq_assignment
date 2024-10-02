@@ -60,17 +60,13 @@ class ProfileManager(BaseManager):
             ):
                 return
 
-            encrypted_first_name = rsa_encrypt(
-                profile["first_name"], self.config.public_key
-            )
-            encrypted_last_name = rsa_encrypt(
-                profile["last_name"], self.config.public_key
-            )
-            encrypted_registration_date = rsa_encrypt(
-                generate_registration_date(), self.config.public_key
-            )
+            encrypted_first_name = rsa_encrypt(profile["first_name"], self.config.public_key)
+            encrypted_last_name = rsa_encrypt(profile["last_name"], self.config.public_key)
+            encrypted_registration_date = rsa_encrypt(generate_registration_date(), self.config.public_key)
 
-            SQL_CREATE_USER_PROFILES = f"INSERT INTO profiles (first_name, last_name, registration_date, user_id) VALUES (?, ?, ?, ?);"
+            SQL_CREATE_USER_PROFILES = (
+                f"INSERT INTO profiles (first_name, last_name, registration_date, user_id) VALUES (?, ?, ?, ?);"
+            )
             try:
                 cursor = self.config.con.cursor()
                 cursor.execute(
@@ -100,13 +96,9 @@ class ProfileManager(BaseManager):
         profiles = []
         for profile_data in result:
             profile = Profile(*profile_data)
-            profile.first_name = rsa_decrypt(
-                profile.first_name, self.config.private_key
-            )
+            profile.first_name = rsa_decrypt(profile.first_name, self.config.private_key)
             profile.last_name = rsa_decrypt(profile.last_name, self.config.private_key)
-            profile.registration_date = rsa_decrypt(
-                profile.registration_date, self.config.private_key
-            )
+            profile.registration_date = rsa_decrypt(profile.registration_date, self.config.private_key)
             profiles.append(profile)
 
         return profiles
@@ -120,9 +112,7 @@ class ProfileManager(BaseManager):
     def create_profile(self, first_name: str, last_name: str, user_id: int) -> Profile:
         encrypted_first_name = rsa_encrypt(first_name, self.config.public_key)
         encrypted_last_name = rsa_encrypt(last_name, self.config.public_key)
-        encrypted_registration_date = rsa_encrypt(
-            generate_registration_date(), self.config.public_key
-        )
+        encrypted_registration_date = rsa_encrypt(generate_registration_date(), self.config.public_key)
 
         SQL_CREATE_PROFILE = """
             INSERT INTO profiles (first_name, last_name, registration_date, user_id)
@@ -146,9 +136,7 @@ class ProfileManager(BaseManager):
 
         return self.get_profile(user_id)
 
-    def update_profile(
-        self, profile: Profile, first_name: str, last_name: str
-    ) -> Profile:
+    def update_profile(self, profile: Profile, first_name: str, last_name: str) -> Profile:
         encrypted_first_name = rsa_encrypt(first_name, self.config.public_key)
         encrypted_last_name = rsa_encrypt(last_name, self.config.public_key)
 

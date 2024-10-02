@@ -47,18 +47,14 @@ class AddressManager(BaseManager):
         ]
 
         for address in addresses:
-            encrypted_street_name = rsa_encrypt(
-                address["street_name"], self.config.public_key
-            )
-            encrypted_house_number = rsa_encrypt(
-                address["house_number"], self.config.public_key
-            )
-            encrypted_zip_code = rsa_encrypt(
-                address["zip_code"], self.config.public_key
-            )
+            encrypted_street_name = rsa_encrypt(address["street_name"], self.config.public_key)
+            encrypted_house_number = rsa_encrypt(address["house_number"], self.config.public_key)
+            encrypted_zip_code = rsa_encrypt(address["zip_code"], self.config.public_key)
             encrypted_city = rsa_encrypt(address["city"], self.config.public_key)
 
-            SQL_CREATE_ADDRESSES = "INSERT INTO addresses (street_name, house_number, zip_code, city, member_id) VALUES (?, ?, ?, ?, ?);"
+            SQL_CREATE_ADDRESSES = (
+                "INSERT INTO addresses (street_name, house_number, zip_code, city, member_id) VALUES (?, ?, ?, ?, ?);"
+            )
 
             try:
                 cursor = self.config.con.cursor()
@@ -88,12 +84,8 @@ class AddressManager(BaseManager):
         addresses = []
         for address_data in result:
             address = Address(*address_data)
-            address.street_name = rsa_decrypt(
-                address.street_name, self.config.private_key
-            )
-            address.house_number = rsa_decrypt(
-                address.house_number, self.config.private_key
-            )
+            address.street_name = rsa_decrypt(address.street_name, self.config.private_key)
+            address.house_number = rsa_decrypt(address.house_number, self.config.private_key)
             address.zip_code = rsa_decrypt(address.zip_code, self.config.private_key)
             address.city = rsa_decrypt(address.city, self.config.private_key)
             addresses.append(address)
@@ -114,7 +106,9 @@ class AddressManager(BaseManager):
         city: str,
         member_id: int,
     ) -> Address:
-        SQL_CREATE_ADDRESS = "INSERT INTO addresses (street_name, house_number, zip_code, city, member_id) VALUES (?, ?, ?, ?, ?);"
+        SQL_CREATE_ADDRESS = (
+            "INSERT INTO addresses (street_name, house_number, zip_code, city, member_id) VALUES (?, ?, ?, ?, ?);"
+        )
 
         encrypted_street_name = rsa_encrypt(street_name, self.config.public_key)
         encrypted_house_number = rsa_encrypt(house_number, self.config.public_key)
@@ -153,7 +147,9 @@ class AddressManager(BaseManager):
         encrypted_zip_code = rsa_encrypt(zip_code, self.config.public_key)
         encrypted_city = rsa_encrypt(city, self.config.public_key)
 
-        SQL_UPDATE_ADDRESS = "UPDATE addresses SET street_name = ?, house_number = ?, zip_code = ?, city = ? WHERE member_id = ?;"
+        SQL_UPDATE_ADDRESS = (
+            "UPDATE addresses SET street_name = ?, house_number = ?, zip_code = ?, city = ? WHERE member_id = ?;"
+        )
         try:
             cursor = self.config.con.cursor()
             cursor.execute(
