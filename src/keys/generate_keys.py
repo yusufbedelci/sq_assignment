@@ -1,9 +1,9 @@
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives import serialization
-import os
+from pathlib import Path
 
 # Get the directory path of this file
-dir_path = os.path.dirname(os.path.realpath(__file__))
+dir_path = Path(__file__).resolve().parent
 
 # Generate private key
 private_key = rsa.generate_private_key(
@@ -12,7 +12,8 @@ private_key = rsa.generate_private_key(
 )
 
 # Serialize and save private key to private.pem
-with open(f"{dir_path}/private.pem", "wb") as key_file:
+private_key_path = dir_path / "private.pem"
+with private_key_path.open("wb") as key_file:
     key_file.write(
         private_key.private_bytes(
             encoding=serialization.Encoding.PEM,
@@ -25,7 +26,8 @@ with open(f"{dir_path}/private.pem", "wb") as key_file:
 public_key = private_key.public_key()
 
 # Serialize and save public key to public.pem
-with open(f"{dir_path}/public.pem", "wb") as key_file:
+public_key_path = dir_path / "public.pem"
+with public_key_path.open("wb") as key_file:
     key_file.write(
         public_key.public_bytes(
             encoding=serialization.Encoding.PEM,

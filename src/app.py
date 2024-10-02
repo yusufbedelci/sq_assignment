@@ -28,10 +28,12 @@ class App:
         App.config = config
         App.logger.config = config
 
-        self.user_manager = UserManager(config)
-        self.address_manager = AddressManager(config)
-        self.member_manager = MemberManager(config)
-        self.profile_manager = ProfileManager(config)
+        self.user_manager = UserManager(App.config)
+        self.address_manager = AddressManager(App.config)
+        self.member_manager = MemberManager(App.config)
+        self.profile_manager = ProfileManager(App.config)
+
+        self.backup_manager = Backups(App.config)
 
         self.login_attempts = 0
         self.timeout = False
@@ -39,7 +41,7 @@ class App:
 
         self.root.title("Login")
         # set basic gui settings
-        self.root.maxsize(1200, 1000)
+        self.root.maxsize(1800, 1000)
         self.root.config(bg="RoyalBlue4")
         self.root.option_add("*Label*background", "RoyalBlue2")
         self.root.option_add("*Label*foreground", "white")
@@ -82,7 +84,7 @@ class App:
     def view_login_screen(self):
         self.clear_screen()
         title_label = tk.Label(self.root, text="Login", font=("Arial", 16, "bold"), bg="RoyalBlue4")
-        title_label.pack(pady=10)
+        title_label.pack(pady=(20, 10))
 
         # un = tk.StringVar(value="super_admin")
         # pw = tk.StringVar(value="Admin_123?")
@@ -91,12 +93,12 @@ class App:
 
         self.username_label = tk.Label(self.root, text="Username", bg="RoyalBlue4")
         self.username_label.pack(pady=10, padx=100)
-        self.username_entry = tk.Entry(self.root, width=100, textvariable=un)
+        self.username_entry = tk.Entry(self.root, width=50, textvariable=un)
         self.username_entry.pack(pady=10, padx=100)
 
         self.password_label = tk.Label(self.root, text="Password", bg="RoyalBlue4")
         self.password_label.pack(pady=10, padx=100)
-        self.password_entry = tk.Entry(self.root, show="*", width=100, textvariable=pw)
+        self.password_entry = tk.Entry(self.root, show="*", width=50, textvariable=pw)
         self.password_entry.pack(pady=10, padx=100)
 
         self.login_button = tk.Button(self.root, text="Login", command=self.login)
@@ -174,6 +176,11 @@ class App:
                     "end",
                     values=(r_id, line[1][0], line[1][1], line[1][2]),
                 )
+
+        tree.column("No", width=50)
+        tree.column("Datetime", width=140)
+        tree.column("Level", width=65)
+        tree.column("Description", width=700)
 
     # Users (& Consultants)
     @authorized(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
@@ -295,25 +302,25 @@ class App:
         # username
         username_label = tk.Label(self.right_frame, text="Please enter the new username", font=("Arial", 12))
         username_label.pack(pady=5, padx=25)
-        username_entry = tk.Entry(self.right_frame, width=100)
+        username_entry = tk.Entry(self.right_frame, width=50)
         username_entry.pack(pady=5, padx=25)
 
         # password
         password_label = tk.Label(self.right_frame, text="Please enter the new password", font=("Arial", 12))
         password_label.pack(pady=5, padx=25)
-        password_entry = tk.Entry(self.right_frame, show="*", width=100)
+        password_entry = tk.Entry(self.right_frame, show="*", width=50)
         password_entry.pack(pady=5, padx=25)
 
         # first name
         first_name_label = tk.Label(self.right_frame, text="Please enter the first name", font=("Arial", 12))
         first_name_label.pack(pady=5, padx=25)
-        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry = tk.Entry(self.right_frame, width=50)
         first_name_entry.pack(pady=5, padx=25)
 
         # last name
         last_name_label = tk.Label(self.right_frame, text="Please enter the last name", font=("Arial", 12))
         last_name_label.pack(pady=5, padx=25)
-        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry = tk.Entry(self.right_frame, width=50)
         last_name_entry.pack(pady=5, padx=25)
 
         # role
@@ -410,7 +417,7 @@ class App:
         # username
         current_username_label = tk.Label(self.right_frame, text="Current Username", font=("Arial", 12))
         current_username_label.pack(pady=5, padx=25)
-        current_username_entry = tk.Entry(self.right_frame, width=100)
+        current_username_entry = tk.Entry(self.right_frame, width=50)
         current_username_entry.insert(0, updated_user.username)
         current_username_entry.config(state="readonly")
         current_username_entry.pack(pady=5, padx=25)
@@ -418,14 +425,14 @@ class App:
         # first name
         first_name_label = tk.Label(self.right_frame, text="Please enter the first name", font=("Arial", 12))
         first_name_label.pack(pady=5, padx=25)
-        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry = tk.Entry(self.right_frame, width=50)
         first_name_entry.insert(0, updated_profile.first_name)
         first_name_entry.pack(pady=5, padx=25)
 
         # last name
         last_name_label = tk.Label(self.right_frame, text="Please enter the last name", font=("Arial", 12))
         last_name_label.pack(pady=5, padx=25)
-        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry = tk.Entry(self.right_frame, width=50)
         last_name_entry.insert(0, updated_profile.last_name)
         last_name_entry.pack(pady=5, padx=25)
 
@@ -515,25 +522,25 @@ class App:
         # username
         username_label = tk.Label(self.right_frame, text="Please enter the new username", font=("Arial", 12))
         username_label.pack(pady=5, padx=25)
-        username_entry = tk.Entry(self.right_frame, width=100)
+        username_entry = tk.Entry(self.right_frame, width=50)
         username_entry.pack(pady=5, padx=25)
 
         # password
         password_label = tk.Label(self.right_frame, text="Please enter the new password", font=("Arial", 12))
         password_label.pack(pady=5, padx=25)
-        password_entry = tk.Entry(self.right_frame, show="*", width=100)
+        password_entry = tk.Entry(self.right_frame, show="*", width=50)
         password_entry.pack(pady=5, padx=25)
 
         # first name
         first_name_label = tk.Label(self.right_frame, text="Please enter the first name", font=("Arial", 12))
         first_name_label.pack(pady=5, padx=25)
-        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry = tk.Entry(self.right_frame, width=50)
         first_name_entry.pack(pady=5, padx=25)
 
         # last name
         last_name_label = tk.Label(self.right_frame, text="Please enter the last name", font=("Arial", 12))
         last_name_label.pack(pady=5, padx=25)
-        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry = tk.Entry(self.right_frame, width=50)
         last_name_entry.pack(pady=5, padx=25)
 
         # submit button
@@ -612,7 +619,7 @@ class App:
         # username
         current_username_label = tk.Label(self.right_frame, text="Current Username", font=("Arial", 12))
         current_username_label.pack(pady=5, padx=25)
-        current_username_entry = tk.Entry(self.right_frame, width=100)
+        current_username_entry = tk.Entry(self.right_frame, width=50)
         current_username_entry.insert(0, updated_user.username)
         current_username_entry.config(state="readonly")
         current_username_entry.pack(pady=5, padx=25)
@@ -620,14 +627,14 @@ class App:
         # first name
         first_name_label = tk.Label(self.right_frame, text="Please enter the first name", font=("Arial", 12))
         first_name_label.pack(pady=5, padx=25)
-        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry = tk.Entry(self.right_frame, width=50)
         first_name_entry.insert(0, updated_profile.first_name)
         first_name_entry.pack(pady=5, padx=25)
 
         # last name
         last_name_label = tk.Label(self.right_frame, text="Please enter the last name", font=("Arial", 12))
         last_name_label.pack(pady=5, padx=25)
-        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry = tk.Entry(self.right_frame, width=50)
         last_name_entry.insert(0, updated_profile.last_name)
         last_name_entry.pack(pady=5, padx=25)
 
@@ -864,19 +871,19 @@ class App:
         # first name
         first_name_label = tk.Label(self.right_frame, text="Please enter the first name", font=("Arial", 12))
         first_name_label.pack(pady=5, padx=25)
-        first_name_entry = tk.Entry(self.right_frame, width=100)
+        first_name_entry = tk.Entry(self.right_frame, width=50)
         first_name_entry.pack(pady=5, padx=25)
 
         # last name
         last_name_label = tk.Label(self.right_frame, text="Please enter the last name", font=("Arial", 12))
         last_name_label.pack(pady=5, padx=25)
-        last_name_entry = tk.Entry(self.right_frame, width=100)
+        last_name_entry = tk.Entry(self.right_frame, width=50)
         last_name_entry.pack(pady=5, padx=25)
 
         # age
         age_label = tk.Label(self.right_frame, text="Please enter the age", font=("Arial", 12))
         age_label.pack(pady=5, padx=25)
-        age_entry = tk.Entry(self.right_frame, width=100)
+        age_entry = tk.Entry(self.right_frame, width=50)
         age_entry.pack(pady=5, padx=25)
 
         # gender
@@ -889,19 +896,19 @@ class App:
         # weight
         weight_label = tk.Label(self.right_frame, text="Please enter the weight", font=("Arial", 12))
         weight_label.pack(pady=5, padx=25)
-        weight_entry = tk.Entry(self.right_frame, width=100)
+        weight_entry = tk.Entry(self.right_frame, width=50)
         weight_entry.pack(pady=5, padx=25)
 
         # email
         email_label = tk.Label(self.right_frame, text="Please enter the email", font=("Arial", 12))
         email_label.pack(pady=5, padx=25)
-        email_entry = tk.Entry(self.right_frame, width=100)
+        email_entry = tk.Entry(self.right_frame, width=50)
         email_entry.pack(pady=5, padx=25)
 
         # phone number
         phone_number_label = tk.Label(self.right_frame, text="Please enter the phone number", font=("Arial", 12))
         phone_number_label.pack(pady=5, padx=25)
-        phone_number_entry = tk.Entry(self.right_frame, width=100)
+        phone_number_entry = tk.Entry(self.right_frame, width=50)
         phone_number_entry.pack(pady=5, padx=25)
 
         # DIVIDER
@@ -911,19 +918,19 @@ class App:
         # address: street
         street_label = tk.Label(self.right_frame, text="Please enter the street", font=("Arial", 12))
         street_label.pack(pady=5, padx=25)
-        street_entry = tk.Entry(self.right_frame, width=100)
+        street_entry = tk.Entry(self.right_frame, width=50)
         street_entry.pack(pady=5, padx=25)
 
         # address: house number
         house_number_label = tk.Label(self.right_frame, text="Please enter the house number", font=("Arial", 12))
         house_number_label.pack(pady=5, padx=25)
-        house_number_entry = tk.Entry(self.right_frame, width=100)
+        house_number_entry = tk.Entry(self.right_frame, width=50)
         house_number_entry.pack(pady=5, padx=25)
 
         # address: zip code
         zip_code_label = tk.Label(self.right_frame, text="Please enter the zip code", font=("Arial", 12))
         zip_code_label.pack(pady=5, padx=25)
-        zip_code_entry = tk.Entry(self.right_frame, width=100)
+        zip_code_entry = tk.Entry(self.right_frame, width=50)
         zip_code_entry.pack(pady=5, padx=25)
 
         # address: city
@@ -1048,7 +1055,7 @@ class App:
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN, User.Role.CONSULTANT))
         def delete():
-            member = self.member_manager.get_member(self.member_to_update.id)
+            member = self.member_manager.get_member(member_to_update.id)
             self.member_manager.delete_member(member)
             messagebox.showinfo("Information", "Member has been deleted.")
             App.logger.log_activity(self.user, "deleted member", f"with id: {member.id}", False)
@@ -1063,21 +1070,21 @@ class App:
         # first name
         updated_first_name_label = tk.Label(self.right_frame, text="First Name", font=("Arial", 12))
         updated_first_name_label.pack(pady=5, padx=25)
-        updated_first_name_entry = tk.Entry(self.right_frame, width=100)
+        updated_first_name_entry = tk.Entry(self.right_frame, width=50)
         updated_first_name_entry.insert(0, updated_member.first_name)
         updated_first_name_entry.pack(pady=5, padx=25)
 
         # last name
         updated_last_name_label = tk.Label(self.right_frame, text="Last Name", font=("Arial", 12))
         updated_last_name_label.pack(pady=5, padx=25)
-        updated_last_name_entry = tk.Entry(self.right_frame, width=100)
+        updated_last_name_entry = tk.Entry(self.right_frame, width=50)
         updated_last_name_entry.insert(0, updated_member.last_name)
         updated_last_name_entry.pack(pady=5, padx=25)
 
         # age
         updated_age_label = tk.Label(self.right_frame, text="New Age", font=("Arial", 12))
         updated_age_label.pack(pady=5, padx=25)
-        updated_age_entry = tk.Entry(self.right_frame, width=100)
+        updated_age_entry = tk.Entry(self.right_frame, width=50)
         updated_age_entry.insert(0, updated_member.age)
         updated_age_entry.pack(pady=5, padx=25)
 
@@ -1092,21 +1099,21 @@ class App:
         # weight
         updated_weight_label = tk.Label(self.right_frame, text="New Weight", font=("Arial", 12))
         updated_weight_label.pack(pady=5, padx=25)
-        updated_weight_entry = tk.Entry(self.right_frame, width=100)
+        updated_weight_entry = tk.Entry(self.right_frame, width=50)
         updated_weight_entry.insert(0, updated_member.weight)
         updated_weight_entry.pack(pady=5, padx=25)
 
         # email
         updated_email_label = tk.Label(self.right_frame, text="New Email", font=("Arial", 12))
         updated_email_label.pack(pady=5, padx=25)
-        updated_email_entry = tk.Entry(self.right_frame, width=100)
+        updated_email_entry = tk.Entry(self.right_frame, width=50)
         updated_email_entry.insert(0, updated_member.email)
         updated_email_entry.pack(pady=5, padx=25)
 
         # phone number
         updated_phone_number_label = tk.Label(self.right_frame, text="New Phone Number", font=("Arial", 12))
         updated_phone_number_label.pack(pady=5, padx=25)
-        updated_phone_number_entry = tk.Entry(self.right_frame, width=100)
+        updated_phone_number_entry = tk.Entry(self.right_frame, width=50)
         updated_phone_number_entry.insert(0, updated_member.phone_number)
         updated_phone_number_entry.pack(pady=5, padx=25)
 
@@ -1117,21 +1124,21 @@ class App:
         # address: street
         street_label = tk.Label(self.right_frame, text="Please enter the street", font=("Arial", 12))
         street_label.pack(pady=5, padx=25)
-        street_entry = tk.Entry(self.right_frame, width=100)
+        street_entry = tk.Entry(self.right_frame, width=50)
         street_entry.pack(pady=5, padx=25)
         street_entry.insert(0, updated_address.street_name)
 
         # address: house number
         house_number_label = tk.Label(self.right_frame, text="Please enter the house number", font=("Arial", 12))
         house_number_label.pack(pady=5, padx=25)
-        house_number_entry = tk.Entry(self.right_frame, width=100)
+        house_number_entry = tk.Entry(self.right_frame, width=50)
         house_number_entry.pack(pady=5, padx=25)
         house_number_entry.insert(0, updated_address.house_number)
 
         # address: zip code
         zip_code_label = tk.Label(self.right_frame, text="Please enter the zip code", font=("Arial", 12))
         zip_code_label.pack(pady=5, padx=25)
-        zip_code_entry = tk.Entry(self.right_frame, width=100)
+        zip_code_entry = tk.Entry(self.right_frame, width=50)
         zip_code_entry.pack(pady=5, padx=25)
         zip_code_entry.insert(0, updated_address.zip_code)
 
@@ -1193,7 +1200,7 @@ class App:
 
         current_username_label = tk.Label(self.right_frame, text="Current Username", font=("Arial", 12))
         current_username_label.pack(pady=5, padx=25)
-        current_username_entry = tk.Entry(self.right_frame, width=100)
+        current_username_entry = tk.Entry(self.right_frame, width=50)
         current_username_entry.insert(0, username)
         current_username_entry.config(state="readonly")
         current_username_entry.pack(pady=5, padx=25)
@@ -1201,7 +1208,7 @@ class App:
         password_label = tk.Label(self.right_frame, text="Enter new password", font=("Arial", 12))
         password_label.pack(pady=5, padx=25)
 
-        password_entry = tk.Entry(self.right_frame, show="*", width=100)
+        password_entry = tk.Entry(self.right_frame, show="*", width=50)
         password_entry.pack(pady=5, padx=25)
 
         submit_button = tk.Button(self.right_frame, text="Reset Password", command=submit)
@@ -1246,14 +1253,14 @@ class App:
 
         current_username_label = tk.Label(self.right_frame, text="Current Username", font=("Arial", 12))
         current_username_label.pack(pady=5, padx=25)
-        current_username_entry = tk.Entry(self.right_frame, width=100)
+        current_username_entry = tk.Entry(self.right_frame, width=50)
         current_username_entry.insert(0, self.user.username)
         current_username_entry.config(state="readonly")
         current_username_entry.pack(pady=5, padx=25)
 
         password_label = tk.Label(self.right_frame, text="Enter new password", font=("Arial", 12))
         password_label.pack(pady=5, padx=25)
-        password_entry = tk.Entry(self.right_frame, show="*", width=100)
+        password_entry = tk.Entry(self.right_frame, show="*", width=50)
         password_entry.pack(pady=5, padx=25)
 
         submit_button = tk.Button(self.right_frame, text="Reset Password", command=submit)
@@ -1266,8 +1273,6 @@ class App:
 
         title_label = tk.Label(self.right_frame, text="Backup options: ", font=("Arial", 20, "bold"))
         title_label.pack(pady=10)
-
-        self.backup_manager = Backups(App.config)
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
         def new_backup():
@@ -1285,7 +1290,9 @@ class App:
         button.pack(side="top", anchor="w", pady=(20, 0), padx=10)
 
         backups = self.backup_manager.list()
-        tree = ttk.Treeview(self.right_frame, columns=("Back up"), show="headings")
+        tree = ttk.Treeview(self.right_frame, columns=("Backup"), show="headings")
+        tree.heading("Backup", text="Backup")
+        tree.column("Backup", width=500)
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
         def on_backup_click(event):
@@ -1318,7 +1325,7 @@ class App:
         self.left_frame = tk.Frame(self.root, width=400, height=100, bg="RoyalBlue2")
         self.left_frame.grid(row=0, column=0, padx=20, pady=50)
 
-        self.right_frame = tk.Frame(self.root, width=1000, height=100, bg="RoyalBlue2")
+        self.right_frame = tk.Frame(self.root, width=1500, height=100, bg="RoyalBlue2")
         self.right_frame.grid(row=0, column=1, padx=20, pady=50)
 
     def create_navbar(self, role, current_page):

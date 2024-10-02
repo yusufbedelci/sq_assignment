@@ -3,16 +3,18 @@ import logging
 from config import Config
 from utils import datetime_to_string, string_to_datetime, rsa_encrypt, rsa_decrypt
 import base64
+from pathlib import Path
 
 
 class AppLogger:
     def __init__(self, config: Config, log_file="app.log", level=logging.DEBUG):
         self.login_attempts = 0
         self.config = config
-        self.log_file = log_file
+        self.dir_path = Path(__file__).resolve().parent
+        self.log_file = self.dir_path / log_file
 
     def write(self, log_line):
-        with open(self.log_file, "a") as file:
+        with self.log_file.open("a") as file:
             file.write(log_line + "\n")
 
     def log_activity(self, user, descr_activity, additional_info, suspicious_level):
@@ -34,10 +36,9 @@ class AppLogger:
         self.write(encrypted_log_b64)
 
     def get_logs(self):
-        log_file = self.log_file
         logs = []
         try:
-            with open(log_file, "r") as file:
+            with self.log_file.open("r") as file:
                 for line in file.readlines():
                     line = base64.b64decode(line)
                     line = rsa_decrypt(line, self.config.private_key)

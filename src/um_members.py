@@ -1,14 +1,18 @@
 import sqlite3
 from cryptography.hazmat.primitives import serialization
 import tkinter as tk
+from pathlib import Path
 
 from app import App
 from config import Config
 
+dir_path = Path(__file__).resolve().parent
+
 
 def load_private_key():
     try:
-        with open("keys/private.pem", "rb") as key_file:
+        private_key_path = dir_path / "keys/private.pem"
+        with private_key_path.open("rb") as key_file:
             return serialization.load_pem_private_key(
                 key_file.read(),
                 password=None,
@@ -19,7 +23,8 @@ def load_private_key():
 
 def load_public_key():
     try:
-        with open("keys/public.pem", "rb") as key_file:
+        public_key_path = dir_path / "keys/public.pem"
+        with public_key_path.open("rb") as key_file:
             return serialization.load_pem_public_key(
                 key_file.read(),
             )
@@ -28,7 +33,8 @@ def load_public_key():
 
 
 if "__main__" == __name__:
-    con = sqlite3.connect("data.db")
+    db_path = dir_path / "data.db"
+    con = sqlite3.connect(db_path)
     config = Config(
         con=con,
         private_key=load_private_key(),
