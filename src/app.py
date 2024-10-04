@@ -56,10 +56,10 @@ class App:
         self.member_manager.initialize()
         self.profile_manager.initialize()
 
-        self.user_manager.seed_test_users()
-        self.member_manager.seed_members()
-        self.address_manager.seed_addresses()
-        self.profile_manager.seed_profiles()
+        # self.user_manager.seed_test_users()
+        # self.member_manager.seed_members()
+        # self.address_manager.seed_addresses()
+        # self.profile_manager.seed_profiles()
 
     def start_timeout(self):
         self.timeout = True
@@ -83,11 +83,11 @@ class App:
         title_label = tk.Label(self.root, text="Login", font=("Arial", 16, "bold"), bg="RoyalBlue4")
         title_label.pack(pady=(20, 10))
 
-        un = tk.StringVar(value="super_admin")
-        pw = tk.StringVar(value="Admin_123?")
+        # un = tk.StringVar(value="super_admin")
+        # pw = tk.StringVar(value="Admin_123?")
 
-        # un = tk.StringVar(value="sarahm78")
-        # pw = tk.StringVar(value="Pa$$w0rd1234")
+        un = tk.StringVar(value="sarahm78")
+        pw = tk.StringVar(value="Pa$$w0rd1234")
 
         self.username_label = tk.Label(self.root, text="Username", bg="RoyalBlue4")
         self.username_label.pack(pady=10, padx=100)
@@ -860,8 +860,15 @@ class App:
                         first_name, last_name, age, gender, weight, email, phone_number
                     )
                     if member is not None:
+                        print(f"Street: {street}")
+                        print(f"house_number: {house_number}")
+                        print(f"zip_code: {zip_code}")
+                        print(f"city: {city}")
+                        print(f"member_id: {member.id}")
                         address = self.address_manager.create_address(street, house_number, zip_code, city, member.id)
+                        print(f"Error: {address}")
                         if address is not None:
+                            # print(f"Error: {address}")
                             messagebox.showinfo("Information", "Member has been created.")
                             App.logger.log_activity(
                                 self.user,
@@ -949,7 +956,7 @@ class App:
         # address: city
         city_label = tk.Label(self.right_frame, text="Select a city:", width=100, font=("Arial", 12))
         city_label.pack(pady=10)
-        city_options = [city.value for city in Address.City]
+        city_options = tuple(city.value for city in Address.City)
         city_option = ttk.Combobox(self.right_frame, values=city_options)
         city_option.pack()
 
@@ -1027,7 +1034,7 @@ class App:
                     )
 
                 if len(errors) == 0:
-                    member_to_update = member_to_update
+                    # member_to_update = member_to_update
                     self.member_manager.update_member(
                         member_to_update,
                         updated_first_name,
@@ -1040,7 +1047,6 @@ class App:
                     )
                     updated_member = self.member_manager.get_member(member_to_update.id)
                     if updated_member is not None:
-                        address_to_update = address_to_update
                         self.address_manager.update_address(
                             address_to_update,
                             updated_street,
@@ -1070,7 +1076,7 @@ class App:
                 print(e)
                 messagebox.showerror("Error", "Something went wrong.")
 
-        @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN, User.Role.CONSULTANT))
+        @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
         def delete():
             member = self.member_manager.get_member(member_to_update.id)
             self.member_manager.delete_member(member)
@@ -1162,7 +1168,7 @@ class App:
         # address: city
         city_label = tk.Label(self.right_frame, text="Select a city:", width=100, font=("Arial", 12))
         city_label.pack(pady=10)
-        city_options = (city.value for city in Address.City)
+        city_options = tuple(city.value for city in Address.City)
         city_option = ttk.Combobox(self.right_frame, values=city_options)
         city_option.pack()
         city_option.insert(0, updated_address.city)
@@ -1172,14 +1178,16 @@ class App:
         submit_button.pack(pady=10)
 
         # delete button
-        delete_button = tk.Button(
-            self.right_frame,
-            text="Delete",
-            command=delete,
-            fg="red",
-            font=("Arial", 12, "bold"),
-        )
-        delete_button.pack(pady=5)
+
+        if self.user.role == User.Role.SUPER_ADMIN.value or self.user.role == User.Role.SYSTEM_ADMIN.value:
+            delete_button = tk.Button(
+                self.right_frame,
+                text="Delete",
+                command=delete,
+                fg="red",
+                font=("Arial", 12, "bold"),
+            )
+            delete_button.pack(pady=5)
 
         # back button
         back_button = tk.Button(self.right_frame, text="Cancel", command=self.view_members)
@@ -1422,51 +1430,55 @@ class App:
         if self.timeout:
             return
 
-        username = self.username_entry.get()
-        password = self.password_entry.get()
-        user = self.user_manager.login(username, password)
+        try:
+            username = self.username_entry.get()
+            password = self.password_entry.get()
+            user = self.user_manager.login(username, password)
 
-        if user:
-            self.user = user
-            self.user_manager.update_last_login(user)
-            if user.reset_password == 1:
-                self.view_my_password_reset()
+            if user:
+                self.user = user
+                self.user_manager.update_last_login(user)
+                if user.reset_password == 1:
+                    self.view_my_password_reset()
 
+                else:
+                    App.logger.log_activity(self.user, "Login", "Login was sucessfull", False)
+
+                    # send user to default page (based on role)
+                    if self.user.role == User.Role.SUPER_ADMIN.value or self.user.role == User.Role.SYSTEM_ADMIN.value:
+                        critical_logs = App.logger.get_critical_logs(self.user.last_login)
+                        if len(critical_logs) > 0:
+                            messagebox.showwarning(
+                                "Critical log warning",
+                                "There are some critical logs to review",
+                            )
+                            self.view_logs()
+                        else:
+                            self.view_users()
+
+                    elif self.user.role == User.Role.CONSULTANT.value:
+                        self.view_members()
             else:
-                App.logger.log_activity(self.user, "Login", "Login was sucessfull", False)
-
-                # send user to default page (based on role)
-                if self.user.role == User.Role.SUPER_ADMIN.value or self.user.role == User.Role.SYSTEM_ADMIN.value:
-                    critical_logs = App.logger.get_critical_logs(self.user.last_login)
-                    if len(critical_logs) > 0:
-                        messagebox.showwarning(
-                            "Critical log warning",
-                            "There are some critical logs to review",
-                        )
-                        self.view_logs()
-                    else:
-                        self.view_users()
-
-                elif self.user.role == User.Role.CONSULTANT.value:
-                    self.view_members()
-        else:
-            self.login_attempts += 1
-            App.logger.log_activity(
-                user,
-                "Login failed",
-                f"username: {username} is used for a login attempt with a wrong password",
-                False,
-            )
-            if self.login_attempts == 3:
+                self.login_attempts += 1
                 App.logger.log_activity(
-                    self.user,
-                    "Unsuccesfull Login",
-                    f"Multiple usernames and passwords are tried in a row",
-                    True,
+                    user,
+                    "Login failed",
+                    f"username: {username} is used for a login attempt with a wrong password",
+                    False,
                 )
-                self.start_timeout()
+                if self.login_attempts == 3:
+                    App.logger.log_activity(
+                        self.user,
+                        "Unsuccesfull Login",
+                        f"Multiple usernames and passwords are tried in a row",
+                        True,
+                    )
+                    self.start_timeout()
 
-            messagebox.showerror("Login Failed", "Invalid username or password")
+                messagebox.showerror("Login Failed", "Invalid username or password")
+        except Exception as e:
+            print(e)
+            messagebox.showerror("Error", "Something went wrong.")
 
     def logout(self):
         self.user = None

@@ -39,6 +39,10 @@ def handle_unauthorized(app, allowed_roles: tuple[User.Role]):
     """
     Handle unauthorized access
     """
+    user = app.user_manager.get_user(app.user.username)
+    if not user.role == app.user.role:
+        app.user = user
+
     if app.user.role not in allowed_roles:
         messagebox.showerror("Unauthorized", "You are not authorized to view this page.")
         # send to default page
