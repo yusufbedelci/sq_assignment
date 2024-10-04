@@ -1,5 +1,4 @@
 from datetime import datetime
-import os
 import zipfile
 from config import Config
 from pathlib import Path
@@ -47,6 +46,7 @@ class Backups:
             return zip_file_name.name
         except Exception as e:
             print(f"Error creating backup: {e}")
+            ...
 
     def restore(self, zip_file_name: str):
         try:
@@ -104,6 +104,7 @@ class Backups:
             print(f"Database restored successfully from {zip_file_name}")
         except Exception as e:
             print(f"Error restoring backup: {e}")
+            ...
         finally:
             # Re-enable foreign key checks
             cursor = self.config.con.cursor()

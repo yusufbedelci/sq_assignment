@@ -1,5 +1,4 @@
 from config import Config
-from entities.address import Address
 from utils import (
     rsa_encrypt,
     rsa_decrypt,

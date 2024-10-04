@@ -1,8 +1,5 @@
-from datetime import datetime
-import os
 import tkinter as tk
 from tkinter import ttk
-from functools import wraps
 from config import Config
 from tkinter import messagebox
 from entities.address import Address
@@ -86,10 +83,11 @@ class App:
         title_label = tk.Label(self.root, text="Login", font=("Arial", 16, "bold"), bg="RoyalBlue4")
         title_label.pack(pady=(20, 10))
 
-        # un = tk.StringVar(value="super_admin")
-        # pw = tk.StringVar(value="Admin_123?")
-        un = tk.StringVar(value="sarahm78")
-        pw = tk.StringVar(value="Pa$$w0rd1234")
+        un = tk.StringVar(value="super_admin")
+        pw = tk.StringVar(value="Admin_123?")
+
+        # un = tk.StringVar(value="sarahm78")
+        # pw = tk.StringVar(value="Pa$$w0rd1234")
 
         self.username_label = tk.Label(self.root, text="Username", bg="RoyalBlue4")
         self.username_label.pack(pady=10, padx=100)
@@ -252,48 +250,52 @@ class App:
             last_name = last_name_entry.get()
             role = role_combobox.get()
 
-            errors = []
-            if not validate_username(username):
-                errors.append("Username is not valid.")
+            try:
+                errors = []
+                if not validate_username(username):
+                    errors.append("Username is not valid.")
 
-            if not validate_password(password):
-                errors.append("Password is not valid.")
+                if not validate_password(password):
+                    errors.append("Password is not valid.")
 
-            if not validate_name(first_name):
-                errors.append("First name has to be between 2 and 20 characters.")
+                if not validate_name(first_name):
+                    errors.append("First name has to be between 2 and 20 characters.")
 
-            if not validate_name(last_name):
-                errors.append("Last name has to be between 2 and 20 characters.")
+                if not validate_name(last_name):
+                    errors.append("Last name has to be between 2 and 20 characters.")
 
-            if not validate_server_input(role, choosable_roles):
-                errors.append("Role is not valid, incident will be logged.")
-                App.logger.log_activity(
-                    self.user,
-                    "Server-side input is modified.",
-                    f"Role was not valid: {role}",
-                    True,
-                )
+                if not validate_server_input(role, choosable_roles):
+                    errors.append("Role is not valid, incident will be logged.")
+                    App.logger.log_activity(
+                        self.user,
+                        "Server-side input is modified.",
+                        f"Role was not valid: {role}",
+                        True,
+                    )
 
-            if not self.user_manager.is_available_username(username):
-                errors.append("Username is already taken.")
+                if not self.user_manager.is_available_username(username):
+                    errors.append("Username is already taken.")
 
-            if len(errors) == 0:
-                user = self.user_manager.create_user(username, password, role)
-                App.logger.log_activity(
-                    self.user,
-                    "created user",
-                    f"with username: {user.username}",
-                    False,
-                )
+                if len(errors) == 0:
+                    user = self.user_manager.create_user(username, password, role)
+                    App.logger.log_activity(
+                        self.user,
+                        "created user",
+                        f"with username: {user.username}",
+                        False,
+                    )
 
-                if user is not None:
-                    profile = self.profile_manager.create_profile(first_name, last_name, user.id)
-                    if profile is not None:
-                        messagebox.showinfo("Information", f"User has been created.")
-                        self.view_users()
-            else:
-                messages = "\n".join(errors)
-                messagebox.showinfo("Information", messages)
+                    if user is not None:
+                        profile = self.profile_manager.create_profile(first_name, last_name, user.id)
+                        if profile is not None:
+                            messagebox.showinfo("Information", f"User has been created.")
+                            self.view_users()
+                else:
+                    messages = "\n".join(errors)
+                    messagebox.showinfo("Information", messages)
+            except Exception as e:
+                print(e)
+                messagebox.showerror("Error", "Something went wrong.")
 
         # Create a title label
         title_label = tk.Label(self.right_frame, text="Add new User", font=("Arial", 16, "bold"))
@@ -394,7 +396,8 @@ class App:
                 else:
                     messagebox.showerror("Error", "User not found.")
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to update user: {str(e)}")
+                print(e)
+                messagebox.showerror("Error", f"Something went wrong.")
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN,))
         def delete():
@@ -481,39 +484,43 @@ class App:
             first_name = first_name_entry.get()
             last_name = last_name_entry.get()
 
-            errors = []
-            if not validate_username(username):
-                errors.append("Username is not valid.")
+            try:
+                errors = []
+                if not validate_username(username):
+                    errors.append("Username is not valid.")
 
-            if not validate_password(password):
-                errors.append("Password is not valid.")
+                if not validate_password(password):
+                    errors.append("Password is not valid.")
 
-            if not validate_name(first_name):
-                errors.append("First name has to be between 2 and 20 characters.")
+                if not validate_name(first_name):
+                    errors.append("First name has to be between 2 and 20 characters.")
 
-            if not validate_name(last_name):
-                errors.append("Last name has to be between 2 and 20 characters.")
+                if not validate_name(last_name):
+                    errors.append("Last name has to be between 2 and 20 characters.")
 
-            if not self.user_manager.is_available_username(username):
-                errors.append("Username is already taken.")
+                if not self.user_manager.is_available_username(username):
+                    errors.append("Username is already taken.")
 
-            if len(errors) == 0:
-                user = self.user_manager.create_user(username, password, User.Role.CONSULTANT.value)
-                App.logger.log_activity(
-                    self.user,
-                    "created user",
-                    f"with username: {user.username}",
-                    False,
-                )
+                if len(errors) == 0:
+                    user = self.user_manager.create_user(username, password, User.Role.CONSULTANT.value)
+                    App.logger.log_activity(
+                        self.user,
+                        "created user",
+                        f"with username: {user.username}",
+                        False,
+                    )
 
-                if user is not None:
-                    profile = self.profile_manager.create_profile(first_name, last_name, user.id)
-                    if profile is not None:
-                        messagebox.showinfo("Information", f"User has been created.")
-                        self.view_users()
-            else:
-                messages = "\n".join(errors)
-                messagebox.showinfo("Information", messages)
+                    if user is not None:
+                        profile = self.profile_manager.create_profile(first_name, last_name, user.id)
+                        if profile is not None:
+                            messagebox.showinfo("Information", f"User has been created.")
+                            self.view_users()
+                else:
+                    messages = "\n".join(errors)
+                    messagebox.showinfo("Information", messages)
+            except Exception as e:
+                print(e)
+                messagebox.showerror("Error", "Something went wrong.")
 
         # Create a title label
         title_label = tk.Label(self.right_frame, text="Add new Consultant", font=("Arial", 16, "bold"))
@@ -590,13 +597,15 @@ class App:
                                 self.view_users()
                         else:
                             messagebox.showerror("Error", "Failed to retrieve updated user.")
+
                     else:
                         messages = "\n".join(errors)
                         messagebox.showerror("Information", messages)
                 else:
                     messagebox.showerror("Error", "User not found.")
             except Exception as e:
-                messagebox.showerror("Error", f"Failed to update user: {str(e)}")
+                print(e)
+                messagebox.showerror("Error", "Something went wrong.")
 
         @authorized_action(self, allowed_roles=(User.Role.SYSTEM_ADMIN,))
         def delete():
@@ -799,70 +808,74 @@ class App:
             zip_code = zip_code_entry.get()
             city = city_option.get()
 
-            errors = []
-            if not validate_name(first_name):
-                errors.append("First name has to be between 2 and 20 characters.")
+            try:
+                errors = []
+                if not validate_name(first_name):
+                    errors.append("First name has to be between 2 and 20 characters.")
 
-            if not validate_name(last_name):
-                errors.append("Last name has to be between 2 and 20 characters.")
+                if not validate_name(last_name):
+                    errors.append("Last name has to be between 2 and 20 characters.")
 
-            if not validate_age(age):
-                errors.append("Age has to be between 1 and 100.")
+                if not validate_age(age):
+                    errors.append("Age has to be between 1 and 100.")
 
-            if not validate_weight(weight):
-                errors.append("Weight has to be between 1 and 200.")
+                if not validate_weight(weight):
+                    errors.append("Weight has to be between 1 and 200.")
 
-            if not validate_email(email):
-                errors.append("Email is not valid.")
+                if not validate_email(email):
+                    errors.append("Email is not valid.")
 
-            if not validate_phone_number(phone_number):
-                errors.append("Phone number is not valid.")
+                if not validate_phone_number(phone_number):
+                    errors.append("Phone number is not valid.")
 
-            if not validate_street_name(street):
-                errors.append("Street name has to be between 2 and 30 characters.")
+                if not validate_street_name(street):
+                    errors.append("Street name has to be between 2 and 30 characters.")
 
-            if not validate_house_number(house_number):
-                errors.append("House number has to be between 1 and 9999.")
+                if not validate_house_number(house_number):
+                    errors.append("House number has to be between 1 and 9999.")
 
-            if not validate_zip_code(zip_code):
-                errors.append("Zip code is not valid.")
+                if not validate_zip_code(zip_code):
+                    errors.append("Zip code is not valid.")
 
-            if not validate_server_input(gender, gender_options):
-                errors.append("Gender is not valid, incident will be reported.")
-                App.logger.log_activity(
-                    self.user,
-                    "Server-side input is modified.",
-                    f"Gender was not valid: {gender}",
-                    True,
-                )
+                if not validate_server_input(gender, gender_options):
+                    errors.append("Gender is not valid, incident will be reported.")
+                    App.logger.log_activity(
+                        self.user,
+                        "Server-side input is modified.",
+                        f"Gender was not valid: {gender}",
+                        True,
+                    )
 
-            if not validate_server_input(city, city_options):
-                errors.append("City is not valid, incident will be reported.")
-                App.logger.log_activity(
-                    self.user,
-                    "Server-side input is modified.",
-                    f"City was not valid: {city}",
-                    True,
-                )
+                if not validate_server_input(city, city_options):
+                    errors.append("City is not valid, incident will be reported.")
+                    App.logger.log_activity(
+                        self.user,
+                        "Server-side input is modified.",
+                        f"City was not valid: {city}",
+                        True,
+                    )
 
-            if len(errors) == 0:
-                member = self.member_manager.create_member(
-                    first_name, last_name, age, gender, weight, email, phone_number
-                )
-                if member is not None:
-                    address = self.address_manager.create_address(street, house_number, zip_code, city, member.id)
-                    if address is not None:
-                        messagebox.showinfo("Information", "Member has been created.")
-                        App.logger.log_activity(
-                            self.user,
-                            "created member",
-                            f"with id: {member.id}",
-                            False,
-                        )
-                        self.view_members()
-            else:
-                messages = "\n".join(errors)
-                messagebox.showinfo("Information", messages)
+                if len(errors) == 0:
+                    member = self.member_manager.create_member(
+                        first_name, last_name, age, gender, weight, email, phone_number
+                    )
+                    if member is not None:
+                        address = self.address_manager.create_address(street, house_number, zip_code, city, member.id)
+                        if address is not None:
+                            messagebox.showinfo("Information", "Member has been created.")
+                            App.logger.log_activity(
+                                self.user,
+                                "created member",
+                                f"with id: {member.id}",
+                                False,
+                            )
+                            self.view_members()
+                else:
+                    messages = "\n".join(errors)
+                    messagebox.showinfo("Information", messages)
+            except Exception as e:
+                print(e)
+                messagebox.showerror("Error", "Something went wrong.")
 
         # Create a title label
         title_label = tk.Label(self.right_frame, text="Create new member", font=("Arial", 16, "bold"))
@@ -966,92 +979,96 @@ class App:
             updated_zip_code = zip_code_entry.get()
             updated_city = city_option.get()
 
-            errors = []
-            if not validate_name(updated_first_name):
-                errors.append("First name has to be between 2 and 20 characters.")
+            try:
+                errors = []
+                if not validate_name(updated_first_name):
+                    errors.append("First name has to be between 2 and 20 characters.")
 
-            if not validate_name(updated_last_name):
-                errors.append("Last name has to be between 2 and 20 characters.")
+                if not validate_name(updated_last_name):
+                    errors.append("Last name has to be between 2 and 20 characters.")
 
-            if not validate_age(updated_age):
-                errors.append("Age has to be between 1 and 100.")
+                if not validate_age(updated_age):
+                    errors.append("Age has to be between 1 and 100.")
 
-            if not validate_weight(updated_weight):
-                errors.append("Weight has to be between 1 and 200.")
+                if not validate_weight(updated_weight):
+                    errors.append("Weight has to be between 1 and 200.")
 
-            if not validate_email(updated_email):
-                errors.append("Email is not valid.")
+                if not validate_email(updated_email):
+                    errors.append("Email is not valid.")
 
-            if not validate_phone_number(updated_phone_number):
-                errors.append("Phone number is not valid.")
+                if not validate_phone_number(updated_phone_number):
+                    errors.append("Phone number is not valid.")
 
-            if not validate_street_name(updated_street):
-                errors.append("Street name has to be between 2 and 30 characters.")
+                if not validate_street_name(updated_street):
+                    errors.append("Street name has to be between 2 and 30 characters.")
 
-            if not validate_house_number(updated_house_number):
-                errors.append("House number has to be between 1 and 9999.")
+                if not validate_house_number(updated_house_number):
+                    errors.append("House number has to be between 1 and 9999.")
 
-            if not validate_zip_code(updated_zip_code):
-                errors.append("Zip code is not valid.")
+                if not validate_zip_code(updated_zip_code):
+                    errors.append("Zip code is not valid.")
 
-            if not validate_server_input(updated_gender, gender_options):
-                errors.append("Gender is not valid, incident will be reported.")
-                App.logger.log_activity(
-                    self.user,
-                    "Server-side input is modified.",
-                    f"Gender was not valid: {updated_gender}",
-                    True,
-                )
-
-            if not validate_server_input(updated_city, city_options):
-                errors.append("City is not valid, incident will be reported.")
-                App.logger.log_activity(
-                    self.user,
-                    "Server-side input is modified.",
-                    f"City was not valid: {updated_city}",
-                    True,
-                )
-
-            if len(errors) == 0:
-                member_to_update = member_to_update
-                self.member_manager.update_member(
-                    member_to_update,
-                    updated_first_name,
-                    updated_last_name,
-                    updated_age,
-                    updated_gender,
-                    updated_weight,
-                    updated_email,
-                    updated_phone_number,
-                )
-                updated_member = self.member_manager.get_member(member_to_update.id)
-                if updated_member is not None:
-                    address_to_update = address_to_update
-                    self.address_manager.update_address(
-                        address_to_update,
-                        updated_street,
-                        updated_house_number,
-                        updated_zip_code,
-                        updated_city,
-                        member_to_update.id,
+                if not validate_server_input(updated_gender, gender_options):
+                    errors.append("Gender is not valid, incident will be reported.")
+                    App.logger.log_activity(
+                        self.user,
+                        "Server-side input is modified.",
+                        f"Gender was not valid: {updated_gender}",
+                        True,
                     )
-                    updated_address = self.address_manager.get_address(member_to_update.id)
-                    if updated_address is not None:
-                        messagebox.showinfo("Information", "Member has been updated successfully.")
-                        App.logger.log_activity(
-                            self.user,
-                            "updated member",
-                            f"with id: {updated_member.id}",
-                            False,
+
+                if not validate_server_input(updated_city, city_options):
+                    errors.append("City is not valid, incident will be reported.")
+                    App.logger.log_activity(
+                        self.user,
+                        "Server-side input is modified.",
+                        f"City was not valid: {updated_city}",
+                        True,
+                    )
+
+                if len(errors) == 0:
+                    member_to_update = member_to_update
+                    self.member_manager.update_member(
+                        member_to_update,
+                        updated_first_name,
+                        updated_last_name,
+                        updated_age,
+                        updated_gender,
+                        updated_weight,
+                        updated_email,
+                        updated_phone_number,
+                    )
+                    updated_member = self.member_manager.get_member(member_to_update.id)
+                    if updated_member is not None:
+                        address_to_update = address_to_update
+                        self.address_manager.update_address(
+                            address_to_update,
+                            updated_street,
+                            updated_house_number,
+                            updated_zip_code,
+                            updated_city,
+                            member_to_update.id,
                         )
-                        self.view_members()
+                        updated_address = self.address_manager.get_address(member_to_update.id)
+                        if updated_address is not None:
+                            messagebox.showinfo("Information", "Member has been updated successfully.")
+                            App.logger.log_activity(
+                                self.user,
+                                "updated member",
+                                f"with id: {updated_member.id}",
+                                False,
+                            )
+                            self.view_members()
+                        else:
+                            messagebox.showerror("Error", "Failed to retrieve updated address.")
                     else:
-                        messagebox.showerror("Error", "Failed to retrieve updated address.")
+                        messagebox.showerror("Error", "Failed to retrieve updated member.")
                 else:
-                    messagebox.showerror("Error", "Failed to retrieve updated member.")
-            else:
-                messages = "\n".join(errors)
-                messagebox.showinfo("Information", messages)
+                    messages = "\n".join(errors)
+                    messagebox.showinfo("Information", messages)
+            except Exception as e:
+                print(e)
+                messagebox.showerror("Error", "Something went wrong.")
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN, User.Role.CONSULTANT))
         def delete():
@@ -1175,25 +1192,29 @@ class App:
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
         def submit():
-            reseted_user = self.user_manager.get_user(current_username_entry.get())
-            password = password_entry.get()
+            try:
+                reseted_user = self.user_manager.get_user(current_username_entry.get())
+                password = password_entry.get()
 
-            if (self.user.role == User.Role.SUPER_ADMIN.value) or (
-                self.user.role == User.Role.SYSTEM_ADMIN.value and reseted_user.role == User.Role.CONSULTANT.value
-            ):
-                if validate_password(password):
-                    self.user_manager.reset_password(reseted_user, password)
-                    messagebox.showinfo("Information", "User temporary password has been set.")
-                    self.user_manager.reset_password_status(reseted_user, True)
-                    App.logger.log_activity(
-                        self.user,
-                        "reset password of user",
-                        f"with username: {reseted_user.username}",
-                        False,
-                    )
-                    self.view_users()
-                else:
-                    messagebox.showinfo("Information", "Please try Again")
+                if (self.user.role == User.Role.SUPER_ADMIN.value) or (
+                    self.user.role == User.Role.SYSTEM_ADMIN.value and reseted_user.role == User.Role.CONSULTANT.value
+                ):
+                    if validate_password(password):
+                        self.user_manager.reset_password(reseted_user, password)
+                        messagebox.showinfo("Information", "User temporary password has been set.")
+                        self.user_manager.reset_password_status(reseted_user, True)
+                        App.logger.log_activity(
+                            self.user,
+                            "reset password of user",
+                            f"with username: {reseted_user.username}",
+                            False,
+                        )
+                        self.view_users()
+                    else:
+                        messagebox.showinfo("Information", "Please try Again")
+            except Exception as e:
+                print(e)
+                messagebox.showerror("Error", "Something went wrong.")
 
         title_label = tk.Label(self.right_frame, text="Reset Password", font=("Arial", 16, "bold"))
         title_label.pack(pady=10)
@@ -1231,22 +1252,26 @@ class App:
             without_password_reset=True,
         )
         def submit():
-            reseted_user = self.user_manager.get_user(current_username_entry.get())
-            password = password_entry.get()
+            try:
+                reseted_user = self.user_manager.get_user(current_username_entry.get())
+                password = password_entry.get()
 
-            if validate_password(password):
-                self.user_manager.reset_password(reseted_user, password)
-                messagebox.showinfo("Information", "User password has been set.")
-                self.user_manager.reset_password_status(reseted_user)
-                App.logger.log_activity(
-                    self.user,
-                    "reset their own password",
-                    f"with role: {reseted_user.role}",
-                    False,
-                )
-                self.logout()
-            else:
-                messagebox.showinfo("Information", "Please try Again")
+                if validate_password(password):
+                    self.user_manager.reset_password(reseted_user, password)
+                    messagebox.showinfo("Information", "User password has been set.")
+                    self.user_manager.reset_password_status(reseted_user)
+                    App.logger.log_activity(
+                        self.user,
+                        "reset their own password",
+                        f"with role: {reseted_user.role}",
+                        False,
+                    )
+                    self.logout()
+                else:
+                    messagebox.showinfo("Information", "Please try Again")
+            except Exception as e:
+                print(e)
+                messagebox.showerror("Error", "Something went wrong.")
 
         title_label = tk.Label(self.right_frame, text="Reset Password", font=("Arial", 16, "bold"))
         title_label.pack(pady=10)

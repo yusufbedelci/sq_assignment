@@ -130,7 +130,6 @@ class UserManager(BaseManager):
         return user if self.verify_password(user.password, password) else None
 
     def update_last_login(self, user):
-        # user.last_login
         encrypted_last_login = rsa_encrypt(datetime_to_string(datetime.now()), self.config.public_key)
         SQL_UPDATE_LAST_LOGIN = """
                 UPDATE users SET last_login = ? WHERE id = ?;
@@ -164,6 +163,7 @@ class UserManager(BaseManager):
             result = cursor.fetchall()
         except Exception as e:
             print(f"Error fetching users: {e}")
+            ...
         finally:
             if cursor is not None:
                 cursor.close()
@@ -263,6 +263,7 @@ class UserManager(BaseManager):
             return True
         except Exception as e:
             print(f"Error resetting status: {str(e)}")
+            ...
         finally:
             cursor.close()
 
