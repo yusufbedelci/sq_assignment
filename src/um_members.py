@@ -41,6 +41,16 @@ if "__main__" == __name__:
         public_key=load_public_key(),
     )
 
+    # check if database already exists
+    cursor = con.cursor()
+    cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
+    tables = cursor.fetchall()
+    cursor.close()
+    if not tables:
+        print("Please initialize the database first!")
+        con.close()
+        exit()
+
     # create the root window
     root = tk.Tk()
     app = App(root, config)

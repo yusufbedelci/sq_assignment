@@ -34,9 +34,8 @@ class App:
 
         self.login_attempts = 0
         self.timeout = False
-        self.init_db()
 
-        self.root.title("Login")
+        self.root.title("UNIQUE MEAL MEMBERS APP")
         # set basic gui settings
         self.root.maxsize(1800, 1000)
         self.root.config(bg="RoyalBlue4")
@@ -48,18 +47,6 @@ class App:
 
     def run(self):
         self.root.mainloop()
-
-    def init_db(self):
-        self.user_manager.initialize()
-        self.user_manager.create_super_admin()
-        self.address_manager.initialize()
-        self.member_manager.initialize()
-        self.profile_manager.initialize()
-
-        # self.user_manager.seed_test_users()
-        # self.member_manager.seed_members()
-        # self.address_manager.seed_addresses()
-        # self.profile_manager.seed_profiles()
 
     def start_timeout(self):
         self.timeout = True

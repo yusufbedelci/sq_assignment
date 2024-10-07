@@ -4,6 +4,7 @@ from pathlib import Path
 
 # Get the directory path of this file
 dir_path = Path(__file__).resolve().parent
+keys_dir = dir_path / "keys"
 
 # Generate private key
 private_key = rsa.generate_private_key(
@@ -12,7 +13,7 @@ private_key = rsa.generate_private_key(
 )
 
 # Serialize and save private key to private.pem
-private_key_path = dir_path / "private.pem"
+private_key_path = keys_dir / "private.pem"
 with private_key_path.open("wb") as key_file:
     key_file.write(
         private_key.private_bytes(
@@ -26,7 +27,7 @@ with private_key_path.open("wb") as key_file:
 public_key = private_key.public_key()
 
 # Serialize and save public key to public.pem
-public_key_path = dir_path / "public.pem"
+public_key_path = keys_dir / "public.pem"
 with public_key_path.open("wb") as key_file:
     key_file.write(
         public_key.public_bytes(
