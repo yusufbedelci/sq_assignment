@@ -1,4 +1,5 @@
 from config import Config
+from rate_limit import rate_limit
 from utils import (
     rsa_encrypt,
     rsa_decrypt,
@@ -165,6 +166,7 @@ class MemberManager(BaseManager):
         finally:
             cursor.close()
 
+    @rate_limit(max_calls=5, period=60)
     def search_members(self, search_query: str):
         search_query = search_query.lower()
         results = []

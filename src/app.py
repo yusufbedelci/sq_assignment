@@ -3,6 +3,7 @@ from tkinter import ttk
 from config import Config
 from tkinter import messagebox
 from entities.address import Address
+from exceptions import RateLimitException
 from managers.address_manager import AddressManager
 from managers.member_manager import MemberManager
 from managers.profile_manager import ProfileManager
@@ -733,46 +734,52 @@ class App:
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN, User.Role.CONSULTANT))
         def handle_search():
-            search_results = self.member_manager.search_members(search_field.get())
+            try:
+                search_results = self.member_manager.search_members(search_field.get())
 
-            self.clear_screen()
-            self.make_frames()
-            self.create_navbar(self.user.role, "Members")
+                self.clear_screen()
+                self.make_frames()
+                self.create_navbar(self.user.role, "Members")
 
-            tree = ttk.Treeview(
-                self.right_frame,
-                columns=(
-                    "Membership ID",
-                    "First Name",
-                    "Last Name",
-                    "Email",
-                    "Phone Number",
-                ),
-                show="headings",
-            )
-            tree.heading("Membership ID", text="Membership ID")
-            tree.heading("First Name", text="First Name")
-            tree.heading("Last Name", text="Last Name")
-            tree.heading("Email", text="Email")
-            tree.heading("Phone Number", text="Phone Number")
-            tree.pack(padx=10, pady=10)
-
-            for member in search_results:
-                tree.insert(
-                    "",
-                    "end",
-                    values=(
-                        member.membership_id,
-                        member.first_name,
-                        member.last_name,
-                        member.email,
-                        member.phone_number,
+                tree = ttk.Treeview(
+                    self.right_frame,
+                    columns=(
+                        "Membership ID",
+                        "First Name",
+                        "Last Name",
+                        "Email",
+                        "Phone Number",
                     ),
+                    show="headings",
                 )
+                tree.heading("Membership ID", text="Membership ID")
+                tree.heading("First Name", text="First Name")
+                tree.heading("Last Name", text="Last Name")
+                tree.heading("Email", text="Email")
+                tree.heading("Phone Number", text="Phone Number")
+                tree.pack(padx=10, pady=10)
 
-            # back button
-            self.back_button = tk.Button(self.right_frame, text="Back", command=self.view_members)
-            self.back_button.pack(pady=5)
+                for member in search_results:
+                    tree.insert(
+                        "",
+                        "end",
+                        values=(
+                            member.membership_id,
+                            member.first_name,
+                            member.last_name,
+                            member.email,
+                            member.phone_number,
+                        ),
+                    )
+
+                # back button
+                self.back_button = tk.Button(self.right_frame, text="Back", command=self.view_members)
+                self.back_button.pack(pady=5)
+            except RateLimitException as e:
+                messagebox.showerror("Error", str(e))
+            except Exception as e:
+                print(e)
+                messagebox.showerror("Error", "Something went wrong.")
 
         search_button = tk.Button(self.right_frame, text="Search", command=handle_search)
         search_button.pack(pady=5, padx=20)
