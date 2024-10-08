@@ -39,22 +39,25 @@ def handle_unauthorized(app, allowed_roles: tuple[User.Role]):
     """
     Handle unauthorized access
     """
+    allowed_roles = (role.value for role in allowed_roles)
     user = app.user_manager.get_user(app.user.username)
-    if not user.role == app.user.role:
-        app.user = user
+    if user is not None:
+        if not user.role == app.user.role:
+            app.user = user
 
-    if app.user.role not in allowed_roles:
-        messagebox.showerror("Unauthorized", "You are not authorized to view this page.")
+        if app.user.role not in allowed_roles:
+            messagebox.showerror("Unauthorized", "You are not authorized to view this page.")
+
         # send to default page
         if app.user.role == User.Role.SUPER_ADMIN.value:
-            app.view_users()
+            return app.view_users()
         elif app.user.role == User.Role.SYSTEM_ADMIN.value:
-            app.view_users()
+            return app.view_users()
         elif app.user.role == User.Role.CONSULTANT.value:
-            app.view_members()
-    else:
-        messagebox.showerror("Something went wrong", "Please log in again.")
-        app.logout()
+            return app.view_members()
+
+    messagebox.showerror("Something went wrong", "Please log in again.")
+    app.logout()
 
 
 def authorized(allowed_roles: tuple[User.Role], without_password_reset=False):
@@ -96,7 +99,7 @@ def authorized_action(app, allowed_roles: tuple[User.Role], without_password_res
             if not user_is_authorized:
                 handle_unauthorized(app, allowed_roles)
                 return None
-            return func(*args, **kwargs)  # Only execute if authorized
+            return func(*args, **kwargs)
 
         return wrapper
 

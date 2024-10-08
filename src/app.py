@@ -71,11 +71,11 @@ class App:
         title_label = tk.Label(self.root, text="Login", font=("Arial", 16, "bold"), bg="RoyalBlue4")
         title_label.pack(pady=(20, 10))
 
-        # un = tk.StringVar(value="super_admin")
-        # pw = tk.StringVar(value="Admin_123?")
+        un = tk.StringVar(value="super_admin")
+        pw = tk.StringVar(value="Admin_123?")
 
-        un = tk.StringVar(value="sarahm78")
-        pw = tk.StringVar(value="Pa$$w0rd1234")
+        # un = tk.StringVar(value="sarahm78")
+        # pw = tk.StringVar(value="Pa$$w0rd1234")
 
         self.username_label = tk.Label(self.root, text="Username", bg="RoyalBlue4")
         self.username_label.pack(pady=10, padx=100)
@@ -854,15 +854,8 @@ class App:
                         first_name, last_name, age, gender, weight, email, phone_number
                     )
                     if member is not None:
-                        print(f"Street: {street}")
-                        print(f"house_number: {house_number}")
-                        print(f"zip_code: {zip_code}")
-                        print(f"city: {city}")
-                        print(f"member_id: {member.id}")
                         address = self.address_manager.create_address(street, house_number, zip_code, city, member.id)
-                        print(f"Error: {address}")
                         if address is not None:
-                            # print(f"Error: {address}")
                             messagebox.showinfo("Information", "Member has been created.")
                             App.logger.log_activity(
                                 self.user,
@@ -1306,7 +1299,7 @@ class App:
             backup_name = self.backup_manager.create()
             messagebox.showinfo("Backup Created", "Backup created successfully")
             App.logger.log_activity(self.user, "created_backup", f"{backup_name}", False)
-            self.view_backups()
+            return self.view_backups()
 
         button = tk.Button(
             self.right_frame,
@@ -1333,7 +1326,7 @@ class App:
             if proceeed:
                 self.backup_manager.restore(backup)
                 messagebox.showinfo("Backup Restored", "Backup restored successfully")
-            return
+            return self.view_backups()
 
         for i, backup in enumerate(backups):
             tree.insert("", "end", values=(backup,))
