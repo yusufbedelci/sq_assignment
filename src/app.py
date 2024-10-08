@@ -325,6 +325,13 @@ class App:
 
     @authorized(allowed_roles=(User.Role.SUPER_ADMIN,))
     def view_user_update(self, username):
+        # Get user and profile
+        updated_user = self.user_manager.get_user(username)
+        if updated_user is None:
+            messagebox.showerror("Error", "User not found.")
+            return self.view_users()
+        updated_profile = self.profile_manager.get_profile(updated_user.id)
+
         self.create_view(self.user.role, "Users")
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN,))
@@ -390,10 +397,6 @@ class App:
 
             App.logger.log_activity(self.user, "deleted user", f"with username: {user.username}", False)
             self.view_users()
-
-        # Get user and profile
-        updated_user = self.user_manager.get_user(username)
-        updated_profile = self.profile_manager.get_profile(updated_user.id)
 
         # Create a title label
         title_label = tk.Label(self.right_frame, text=f"Update User", font=("Arial", 16, "bold"))
@@ -542,6 +545,13 @@ class App:
 
     @authorized(allowed_roles=(User.Role.SYSTEM_ADMIN,))
     def view_consultant_update(self, username):
+        # Get user and profile
+        updated_user = self.user_manager.get_user(username)
+        if updated_user is None:
+            messagebox.showerror("Error", "User not found.")
+            return self.view_users()
+        updated_profile = self.profile_manager.get_profile(updated_user.id)
+
         self.create_view(self.user.role, "Users")
 
         @authorized_action(self, allowed_roles=(User.Role.SYSTEM_ADMIN,))
@@ -598,10 +608,6 @@ class App:
 
             App.logger.log_activity(self.user, "deleted user", f"with username: {user.username}", False)
             self.view_users()
-
-        # Get user and profile
-        updated_user = self.user_manager.get_user(username)
-        updated_profile = self.profile_manager.get_profile(updated_user.id)
 
         # Create a title label
         title_label = tk.Label(self.right_frame, text=f"Update Consultant", font=("Arial", 16, "bold"))
@@ -951,6 +957,12 @@ class App:
 
     @authorized(allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN, User.Role.CONSULTANT))
     def view_member_update(self, member_id):
+        member_to_update = updated_member = self.member_manager.get_member(member_id)
+        if member_to_update is None:
+            messagebox.showerror("Error", "Member not found.")
+            return self.view_members()
+        address_to_update = updated_address = self.address_manager.get_address(member_id)
+
         self.create_view(self.user.role, "Members")
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN, User.Role.CONSULTANT))
@@ -1067,9 +1079,6 @@ class App:
 
         title_label = tk.Label(self.right_frame, text="Update member", font=("Arial", 16, "bold"))
         title_label.pack(pady=10)
-
-        member_to_update = updated_member = self.member_manager.get_member(member_id)
-        address_to_update = updated_address = self.address_manager.get_address(member_id)
 
         # first name
         updated_first_name_label = tk.Label(self.right_frame, text="First Name", font=("Arial", 12))
@@ -1225,20 +1234,15 @@ class App:
         submit_button.pack(pady=20)
 
     @authorized(
-        allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN, User.Role.CONSULTANT),
-        without_password_reset=True,
+        allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN, User.Role.CONSULTANT), password_reset_check=False
     )
     def view_my_password_reset(self):
         self.create_view(self.user.role, "Reset my password")
 
         @authorized_action(
             self,
-            allowed_roles=(
-                User.Role.SUPER_ADMIN,
-                User.Role.SYSTEM_ADMIN,
-                User.Role.CONSULTANT,
-            ),
-            without_password_reset=True,
+            allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN, User.Role.CONSULTANT),
+            password_reset_check=False,
         )
         def submit():
             try:
@@ -1358,15 +1362,15 @@ class App:
             elif option == "Logout":
                 self.logout()
 
-        # print list of menu options
-        menu_options = [
-            "Logs",
-            "Users",
-            "Members",
-            "Reset my password",
-            "Backups",
-            "Logout",
-        ]
+        # Make menu options based on role
+        if self.user.reset_password == 1:
+            menu_options = ("Reset my password", "Logout")
+        elif role == User.Role.SUPER_ADMIN.value or role == User.Role.SYSTEM_ADMIN.value:
+            menu_options = ("Logs", "Users", "Members", "Reset my password", "Backups", "Logout")
+        elif role == User.Role.CONSULTANT.value:
+            menu_options = ("Members", "Reset my password", "Logout")
+        else:
+            menu_options = tuple()
 
         greet_user_text = tk.Label(
             self.left_frame,
@@ -1376,9 +1380,6 @@ class App:
             font=("Arial", 14, "bold"),
         )
         greet_user_text.pack()
-
-        if role == User.Role.CONSULTANT.value:
-            menu_options = [option for option in menu_options if option not in {"Backups", "Logs", "Users"}]
 
         for i, option in enumerate(menu_options):
             if current_page == option:

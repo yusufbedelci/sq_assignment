@@ -3,64 +3,49 @@ from tkinter import messagebox
 from entities.user import User
 
 
-def is_authorized(app, allowed_roles: tuple[User.Role]) -> bool:
+# ======================================== #
+# Authorization functions
+# ======================================== #
+def reset_user(app):
+    is_user_logged_in = app.user is not None
+    db_user = app.user_manager.get_user(app.user.username) if is_user_logged_in else None
+    is_user_in_db = db_user is not None
+    if is_user_logged_in and is_user_in_db:
+        app.user = db_user
+    return app
+
+
+def is_authorized(app, allowed_roles: tuple[User.Role], password_reset_check=True):
     """
     User is authorized if:
-    1. app.user is not None
-    2. app.user still exists in database
-    3. app.user.role is still same as in database
-    4. app.user.role is in allowed_roles
+    1. app.user is not None -> (Any user is logged in)
+    2. app.user still exists in database -> (User is not deleted)
+    3. app.user.reset_password is 0 and password_reset_check is True -> (User has not reset password)
+    4. app.user.role is in allowed_roles -> (User has the correct role)
     """
-    allowed_roles = (role.value for role in allowed_roles)
+    allowed_roles = {role.value for role in allowed_roles}
     if (
         app.user is not None
         and app.user_manager.get_user(app.user.username) is not None
-        and app.user_manager.get_user(app.user.username).role == app.user.role
-        and app.user.role in allowed_roles
-        and app.user.reset_password == 0
-    ):
-        return True
-    return False
-
-
-def is_authorized_without_password_reset(app, allowed_roles: tuple[User.Role]) -> bool:
-    allowed_roles = (role.value for role in allowed_roles)
-    if (
-        app.user is not None
-        and app.user_manager.get_user(app.user.username) is not None
-        and app.user_manager.get_user(app.user.username).role == app.user.role
+        and (not password_reset_check or app.user.reset_password == 0)
         and app.user.role in allowed_roles
     ):
         return True
     return False
 
 
-def handle_unauthorized(app, allowed_roles: tuple[User.Role]):
+def handle_unauthorized(app):
     """
     Handle unauthorized access
     """
-    allowed_roles = (role.value for role in allowed_roles)
-    user = app.user_manager.get_user(app.user.username)
-    if user is not None:
-        if not user.role == app.user.role:
-            app.user = user
-
-        if app.user.role not in allowed_roles:
-            messagebox.showerror("Unauthorized", "You are not authorized to view this page.")
-
-        # send to default page
-        if app.user.role == User.Role.SUPER_ADMIN.value:
-            return app.view_users()
-        elif app.user.role == User.Role.SYSTEM_ADMIN.value:
-            return app.view_users()
-        elif app.user.role == User.Role.CONSULTANT.value:
-            return app.view_members()
-
-    messagebox.showerror("Something went wrong", "Please log in again.")
+    messagebox.showerror("Unauthorized", "You are not authorized to view this page.")
     app.logout()
 
 
-def authorized(allowed_roles: tuple[User.Role], without_password_reset=False):
+# ======================================== #
+# Decorators
+# ======================================== #
+def authorized(allowed_roles: tuple[User.Role], password_reset_check=True):
     """
     Authorization decorator
     """
@@ -68,22 +53,19 @@ def authorized(allowed_roles: tuple[User.Role], without_password_reset=False):
     def decorator(func):
         @wraps(func)
         def wrapper(app, *args, **kwargs):
-            user_is_authorized = (
-                is_authorized_without_password_reset(app, allowed_roles)
-                if without_password_reset
-                else is_authorized(app, allowed_roles)
-            )
-            if not user_is_authorized:
-                handle_unauthorized(app, allowed_roles)
-                return None
-            return func(app, *args, **kwargs)
+
+            # authorize user
+            app = reset_user(app)
+            if is_authorized(app, allowed_roles, password_reset_check):
+                return func(app, *args, **kwargs)
+            return handle_unauthorized(app)
 
         return wrapper
 
     return decorator
 
 
-def authorized_action(app, allowed_roles: tuple[User.Role], without_password_reset=False):
+def authorized_action(app, allowed_roles: tuple[User.Role], password_reset_check=True):
     """
     Authorization action decorator for standalone functions (like submit actions).
     """
@@ -91,15 +73,12 @@ def authorized_action(app, allowed_roles: tuple[User.Role], without_password_res
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            user_is_authorized = (
-                is_authorized_without_password_reset(app, allowed_roles)
-                if without_password_reset
-                else is_authorized(app, allowed_roles)
-            )
-            if not user_is_authorized:
-                handle_unauthorized(app, allowed_roles)
-                return None
-            return func(*args, **kwargs)
+
+            # authorize user
+            action_app = reset_user(app)
+            if is_authorized(action_app, allowed_roles, password_reset_check):
+                return func(*args, **kwargs)
+            return handle_unauthorized(action_app)
 
         return wrapper
 

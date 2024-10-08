@@ -65,7 +65,7 @@ class AddressManager(BaseManager):
             )
             self.config.con.commit()
         except Exception as e:
-            print(e)
+            # print(e)
             ...
         finally:
             cursor.close()

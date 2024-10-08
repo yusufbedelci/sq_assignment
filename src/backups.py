@@ -79,7 +79,6 @@ class Backups:
             for table in tables:
                 drop_table_sql = f"DROP TABLE IF EXISTS {table[0]}"
                 cursor.execute(drop_table_sql)
-                print(drop_table_sql)  # Debug print to see the drop statements
 
             # Commit changes to ensure all tables are dropped
             self.config.con.commit()
