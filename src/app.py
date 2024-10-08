@@ -71,20 +71,14 @@ class App:
         title_label = tk.Label(self.root, text="Login", font=("Arial", 16, "bold"), bg="RoyalBlue4")
         title_label.pack(pady=(20, 10))
 
-        un = tk.StringVar(value="super_admin")
-        pw = tk.StringVar(value="Admin_123?")
-
-        # un = tk.StringVar(value="sarahm78")
-        # pw = tk.StringVar(value="Pa$$w0rd1234")
-
         self.username_label = tk.Label(self.root, text="Username", bg="RoyalBlue4")
         self.username_label.pack(pady=10, padx=100)
-        self.username_entry = tk.Entry(self.root, width=50, textvariable=un)
+        self.username_entry = tk.Entry(self.root, width=50)
         self.username_entry.pack(pady=10, padx=100)
 
         self.password_label = tk.Label(self.root, text="Password", bg="RoyalBlue4")
         self.password_label.pack(pady=10, padx=100)
-        self.password_entry = tk.Entry(self.root, show="*", width=50, textvariable=pw)
+        self.password_entry = tk.Entry(self.root, show="*", width=50)
         self.password_entry.pack(pady=10, padx=100)
 
         self.login_button = tk.Button(self.root, text="Login", command=self.login)
@@ -282,7 +276,7 @@ class App:
                     messages = "\n".join(errors)
                     messagebox.showinfo("Information", messages)
             except Exception as e:
-                print(e)
+                # print(e)
                 messagebox.showerror("Error", "Something went wrong.")
 
         # Create a title label
@@ -384,7 +378,7 @@ class App:
                 else:
                     messagebox.showerror("Error", "User not found.")
             except Exception as e:
-                print(e)
+                # print(e)
                 messagebox.showerror("Error", f"Something went wrong.")
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN,))
@@ -507,7 +501,7 @@ class App:
                     messages = "\n".join(errors)
                     messagebox.showinfo("Information", messages)
             except Exception as e:
-                print(e)
+                # print(e)
                 messagebox.showerror("Error", "Something went wrong.")
 
         # Create a title label
@@ -592,7 +586,7 @@ class App:
                 else:
                     messagebox.showerror("Error", "User not found.")
             except Exception as e:
-                print(e)
+                # print(e)
                 messagebox.showerror("Error", "Something went wrong.")
 
         @authorized_action(self, allowed_roles=(User.Role.SYSTEM_ADMIN,))
@@ -778,7 +772,7 @@ class App:
             except RateLimitException as e:
                 messagebox.showerror("Error", str(e))
             except Exception as e:
-                print(e)
+                # print(e)
                 messagebox.showerror("Error", "Something went wrong.")
 
         search_button = tk.Button(self.right_frame, text="Search", command=handle_search)
@@ -868,7 +862,7 @@ class App:
                     messages = "\n".join(errors)
                     messagebox.showinfo("Information", messages)
             except Exception as e:
-                print(e)
+                # print(e)
                 messagebox.showerror("Error", "Something went wrong.")
 
         # Create a title label
@@ -1060,7 +1054,7 @@ class App:
                     messages = "\n".join(errors)
                     messagebox.showinfo("Information", messages)
             except Exception as e:
-                print(e)
+                # print(e)
                 messagebox.showerror("Error", "Something went wrong.")
 
         @authorized_action(self, allowed_roles=(User.Role.SUPER_ADMIN, User.Role.SYSTEM_ADMIN))
@@ -1208,7 +1202,7 @@ class App:
                     else:
                         messagebox.showinfo("Information", "Please try Again")
             except Exception as e:
-                print(e)
+                # print(e)
                 messagebox.showerror("Error", "Something went wrong.")
 
         title_label = tk.Label(self.right_frame, text="Reset Password", font=("Arial", 16, "bold"))
@@ -1265,7 +1259,7 @@ class App:
                 else:
                     messagebox.showinfo("Information", "Please try Again")
             except Exception as e:
-                print(e)
+                # print(e)
                 messagebox.showerror("Error", "Something went wrong.")
 
         title_label = tk.Label(self.right_frame, text="Reset Password", font=("Arial", 16, "bold"))
@@ -1464,7 +1458,7 @@ class App:
 
                 messagebox.showerror("Login Failed", "Invalid username or password")
         except Exception as e:
-            print(e)
+            # print(e)
             messagebox.showerror("Error", "Something went wrong.")
 
     def logout(self):

@@ -45,7 +45,7 @@ class Backups:
             print(f"Backup created successfully: {zip_file_name.name}")
             return zip_file_name.name
         except Exception as e:
-            print(f"Error creating backup: {e}")
+            # print(f"Error creating backup: {e}")
             ...
 
     def restore(self, zip_file_name: str):
@@ -103,7 +103,7 @@ class Backups:
 
             print(f"Database restored successfully from {zip_file_name}")
         except Exception as e:
-            print(f"Error restoring backup: {e}")
+            # print(f"Error restoring backup: {e}")
             ...
         finally:
             # Re-enable foreign key checks

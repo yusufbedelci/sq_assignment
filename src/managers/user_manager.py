@@ -55,7 +55,7 @@ class UserManager(BaseManager):
             cursor.execute(SQL_SELECT_USERS)
             result = cursor.fetchall()
         except Exception as e:
-            print(f"Error fetching users: {e}")
+            # print(f"Error fetching users: {e}")
             ...
         finally:
             if cursor is not None:
@@ -155,7 +155,7 @@ class UserManager(BaseManager):
             self.config.con.commit()
             return True
         except Exception as e:
-            print(f"Error resetting status: {str(e)}")
+            # print(f"Error resetting status: {str(e)}")
             ...
         finally:
             cursor.close()
